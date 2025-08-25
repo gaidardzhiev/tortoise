@@ -6,11 +6,25 @@
 #define MEMORY_SIZE 65536//64KB memory
 
 typedef struct {
-	uint16_t PC;// program counter
-	uint16_t registers[8]; // general purpose registers R0-R7
+	uint16_t PC;// Program Counter
+	uint16_t registers[8];// General purpose registers R0-R7
 	uint8_t memory[MEMORY_SIZE];// RAM
-	uint8_t halted;// halt flag
+	uint8_t halted;// Halt flag
 } CPU;
+
+//opcodes
+typedef enum {
+	OP_NOP = 0x00,
+	OP_LOAD = 0x01,
+	OP_ADD = 0x02,
+	OP_STORE = 0x03,
+	OP_JMP = 0x04,
+	OP_JZ = 0x05,
+	OP_HALT = 0xFF
+} Opcode;
+
+//global CPU state
+extern CPU cpu;
 
 //initializes CPU state
 void cpu_init(void);

@@ -14,9 +14,7 @@ typedef enum {
 } Opcode;
 */
 
-extern CPU cpu;
-
-static CPU cpu;
+CPU cpu;
 
 void cpu_init(void) {
 	memset(&cpu, 0, sizeof(cpu));
