@@ -4,10 +4,6 @@
 
 TORTOISE is a simple CPU emulator implemented in C designed for educational purposes and to demonstrate the fundamentals of CPU architecture and instruction execution. The emulator models a minimalist 16 bit CPU with a small set of instructions, a fixed size memory space, and general purpose registers.
 
-The name TORTOISE represents:
-
-**Transparent Opcode Runtime for Threaded Operations and Instruction Set Emulation**
-
 ---
 
 ## Architecture
