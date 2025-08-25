@@ -10,7 +10,7 @@ TORTOISE is a simple CPU emulator implemented in C designed for educational purp
 
 ### CPU Structure
 
-- **Registers:** 8 general-purpose 16-bit registers (R0–R7).
+- **Registers:** 8 general purpose 16 bit registers (R0–R7).
 - **Program Counter (PC):** 16 bit register pointing to the current instruction in memory.
 - **Memory:** 64KB byteaddressable memory representing RAM.
 - **Halted Flag:** Indicates whether the CPU is halted.
@@ -29,7 +29,7 @@ The emulator supports a small set of instructions facilitating data movement, ar
 | 0x05    | JZ       | Jump if register is zero                      |
 | 0xFF    | HALT     | Stop execution                                |
 
-### Fetch-Decode-Execute Cycle
+### Fetch Decode Execute Cycle
 
 The CPU operates by repeatedly performing the following steps:
 
@@ -86,7 +86,7 @@ make run_test
 This emulator was designed to be a foundation for experimentation:
 - Add more instructions (e.g., logical operations, subroutine calls).
 - Implement I/O and interrupt handling.
-- Introduce a simple assembler to write human-readable programs.
+- Introduce a simple assembler to write humanreadable programs.
 - Extend memory size or support different data widths.
 
 ---
@@ -96,7 +96,7 @@ This emulator was designed to be a foundation for experimentation:
 - Understand core CPU components and their interactions.
 - Gain practical skills in emulator development and software CPU architecture.
 - Explore instruction set design and implementation.
-- Observe real-time instruction flow and state mutation.
+- Observe real time instruction flow and state mutation.
 
 ---
 
