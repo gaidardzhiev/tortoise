@@ -2,6 +2,7 @@
 #include <string.h>
 #include "cpu.h"
 
+/*
 typedef enum {
 	OP_NOP = 0x00,
 	OP_LOAD = 0x01,// LOAD reg, immediate
@@ -11,6 +12,9 @@ typedef enum {
 	OP_JZ = 0x05,// JZ reg, address
 	OP_HALT = 0xFF// HALT execution
 } Opcode;
+*/
+
+extern CPU cpu;
 
 static CPU cpu;
 
