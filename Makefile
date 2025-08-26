@@ -14,7 +14,7 @@ $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN)
+	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin
 
 TEST_SRC=tests/test_cpu.c src/cpu.c
 TEST_BIN=test_cpu

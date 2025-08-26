@@ -7,7 +7,7 @@
 #define MAX_LINE_LEN 128
 #define MAX_CODE_SIZE 65536
 
-// Opcodes
+//opcodes
 enum {
 	OP_NOP = 0x00,
 	OP_LOAD = 0x01,
