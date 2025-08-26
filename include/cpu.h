@@ -13,7 +13,7 @@ typedef struct {
 	uint8_t halted;			//halt flag
 } CPU;
 
-//ppcode definitions including logical ops and calls
+//opcode definitions including logical ops and calls
 typedef enum {
 	OP_NOP = 0x00,
 	OP_LOAD = 0x01,

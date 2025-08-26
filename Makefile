@@ -14,10 +14,10 @@ $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_BIN)
+	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN)
 
-TEST_SRC = tests/test_cpu.c src/cpu.c
-TEST_BIN = test_cpu
+TEST_SRC=tests/test_cpu.c src/cpu.c
+TEST_BIN=test_cpu
 
 test: $(TEST_SRC)
 	$(CC) $(CFLAGS) -Iinclude -o $(TEST_BIN) $(TEST_SRC)
@@ -25,4 +25,10 @@ test: $(TEST_SRC)
 run_test: test
 	./$(TEST_BIN)
 
-.PHONY: all clean test
+ASM_SRC=assembler/assembler.c
+ASM_BIN=as
+
+assembler: $(ASM_SRC)
+	$(CC) -o $(ASM_BIN) $(ASM_SRC)
+
+.PHONY: all clean test assembler
