@@ -61,9 +61,13 @@ Instructions use fixed size formats for simplicity of decoding.
   - `cpu.h`  
 - `tests/`  
   Contains test programs and unit tests:  
-  - `test_cpu.c`: Basic and extended instruction tests including arithmetic, logical, and control flow operations  
+  - `test_cpu.c`: Basic and extended instruction tests including arithmetic, logical, and control flow operations
+- `assembler/`  
+  Contains the assembler source and test assembly files:  
+  - `assembler.c`: A simple assembler converting human readable assembly into binary machine code compatible with TORTOISE CPU  
+  - `.asm` files containing assembly source programs  
 - `Makefile`  
-  Builds the project and tests  
+  Builds the emulator, assembler, and tests 
 
 ---
 
@@ -87,13 +91,23 @@ The tests include:
 
 ---
 
+## Assembler
+
+- The TORTOISE assembler is a command line tool written in C that converts human readable assembly language programs into binary machine code executable by the TORTOISE CPU emulator.
+- It supports the full instruction set of the emulator, including data movement (`LOAD`, `STORE`), arithmetic (`ADD`), logical operations (`AND`, `OR`, `XOR`, `NOT`), control flow (`JMP`, `JZ`, `CALL`, `RET`), I/O instructions (`IN`, `OUT`), and program termination (`HALT`). 
+- The assembler reads assembly source files line by line, ignoring comments and whitespace, and parses instructions and operands which can be registers or immediate numeric values (in decimal or hexadecimal).
+- It outputs machine code in a compact binary format ready for loading into emulator memory.
+- This allows writing readable assembly programs for TORTOISE, which can then be assembled and executed on the emulator, providing a complete flow from source code to CPU execution.
+- The assembler is designed to be simple, easy to understand, and easily extensible for adding new instructions or features.
+
+
 ## Extending TORTOISE
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:
 
 - Adding more instructions such as multiplication, division, or bit shifts.
 - Implementing interrupt handling and I/O devices beyond simple simulated input/output.
-- Developing a simple assembler and loader for human readable program writing.
+- Developing a simple assembler and loader for human readable program writing. [DONE]
 - Supporting larger memory sizes or different data widths (e.g., 32bit registers).
 
 ---
