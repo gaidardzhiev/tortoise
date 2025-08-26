@@ -1,102 +1,109 @@
 # TORTOISE CPU Emulator
 
 ## Overview
-
-TORTOISE is a simple CPU emulator implemented in C designed for educational purposes and to demonstrate the fundamentals of CPU architecture and instruction execution. The emulator models a minimalist 16 bit CPU with a small set of instructions, a fixed size memory space, and general purpose registers.
+TORTOISE is a simple CPU emulator implemented in C designed for educational purposes and to demonstrate the fundamentals of CPU architecture and instruction execution. The emulator models a minimalist 16bit CPU with a small set of instructions, a fixed size memory space, and general purpose registers.
 
 ---
 
 ## Architecture
 
 ### CPU Structure
-
-- **Registers:** 8 general purpose 16 bit registers (R0–R7).
-- **Program Counter (PC):** 16 bit register pointing to the current instruction in memory.
-- **Memory:** 64KB byteaddressable memory representing RAM.
+- **Registers:** 8 general-purpose 16bit registers (R0–R7).
+- **Program Counter (PC):** 32bit register pointing to the current instruction in memory, allowing addressing 64KB memory space.
+- **Stack Pointer (SP):** 32bit register managing the call stack in memory.
+- **Memory:** 64KB byte addressable memory representing RAM.
 - **Halted Flag:** Indicates whether the CPU is halted.
 
 ### Instruction Set
+The emulator supports a set of instructions facilitating data movement, arithmetic, logical operations, control flow, and program termination:
 
-The emulator supports a small set of instructions facilitating data movement, arithmetic, control flow, and program termination:
+| Opcode  | Mnemonic | Description                               |
+|---------|----------|-------------------------------------------|
+| 0x00    | NOP      | No operation                              |
+| 0x01    | LOAD     | Load immediate 16bit value into register  |
+| 0x02    | ADD      | Add immediate 16bit value to register     |
+| 0x03    | STORE    | Store register value into memory          |
+| 0x04    | JMP      | Unconditional jump to memory address      |
+| 0x05    | JZ       | Jump if register is zero                  |
+| 0x06    | AND      | Bitwise AND immediate with register       |
+| 0x07    | OR       | Bitwise OR immediate with register        |
+| 0x08    | XOR      | Bitwise XOR immediate with register       |
+| 0x09    | NOT      | Bitwise NOT of register                   |
+| 0x0A    | CALL     | Call subroutine at memory address         |
+| 0x0B    | RET      | Return from subroutine                    |
+| 0x0C    | IN       | Input from device (simulated)             |
+| 0x0D    | OUT      | Output to device (simulated)              |
+| 0xFF    | HALT     | Stop execution                            |
 
-| Opcode  | Mnemonic | Description                                   |
-|---------|----------|-----------------------------------------------|
-| 0x00    | NOP      | No operation                                  |
-| 0x01    | LOAD     | Load immediate 16 bit value into register     |
-| 0x02    | ADD      | Add immediate 16 bit value to register        |
-| 0x03    | STORE    | Store register value into memory              |
-| 0x04    | JMP      | Unconditional jump to memory address          |
-| 0x05    | JZ       | Jump if register is zero                      |
-| 0xFF    | HALT     | Stop execution                                |
+---
 
-### Fetch Decode Execute Cycle
+### Fetch-Decode-Execute Cycle
 
 The CPU operates by repeatedly performing the following steps:
 
 1. **Fetch:** The instruction byte is read from memory at the address indicated by the PC.
 2. **Decode:** The opcode and operands (register indices, immediate values, addresses) are parsed.
-3. **Execute:** The instruction affects CPU state modifies registers, memory, or PC.
-4. **Advance:** The PC is updated to point to the next instruction unless altered by control flow.
+3. **Execute:** The instruction modifies CPU state by changing registers, memory, or program counter.
+4. **Advance:** The PC is updated to point to the next instruction unless altered by control flow instructions (e.g., JMP, CALL, RET).
 
-Instructions use fixed size formats to simplify decoding.
+Instructions use fixed size formats for simplicity of decoding.
 
 ---
 
 ## Project Structure
 
 - `src/`  
-  Contains the CPU emulator source files:
-  - `cpu.c`: CPU logic and instruction execution
-  - `main.c`: Entry point, initializes CPU and starts execution
-
+  Contains the CPU emulator source files:  
+  - `cpu.c`: Implementation of CPU registers, memory, and instruction execution logic  
+  - `main.c`: Entrypoint initializing the CPU and starting execution  
 - `include/`  
-  Header files exposing CPU API and data structures:
-  - `cpu.h`
-
+  Header files exposing CPU API and data structures:  
+  - `cpu.h`  
 - `tests/`  
-  Contains test programs and unit tests:
-  - `test_cpu.c`: Basic tests for CPU instructions and state
-
+  Contains test programs and unit tests:  
+  - `test_cpu.c`: Basic and extended instruction tests including arithmetic, logical, and control flow operations  
 - `Makefile`  
-  Builds the project and tests.
+  Builds the project and tests  
 
 ---
 
 ## Usage
 
-Build the emulator with:
-
+Build the emulator using:
 ```
 make
 ```
 
-Run the emulator binary `tortoise` to start execution of a loaded program.
+Run the emulator starting the `tortoise` executable with your program loaded.
 
-Run tests with:
+Run comprehensive CPU tests with:
 
 ```
 make run_test
 ```
-
+The tests include:
+- A simple test verifying `LOAD`, `ADD`, and `HALT` instructions.
+- An extended test covering logical bitwise operations (`AND`, `OR`, `XOR`, `NOT`), subroutine call/return, and correct register and memory behavior.
 
 ---
 
 ## Extending TORTOISE
 
-This emulator was designed to be a foundation for experimentation:
-- Add more instructions (e.g., logical operations, subroutine calls).
-- Implement I/O and interrupt handling.
-- Introduce a simple assembler to write humanreadable programs.
-- Extend memory size or support different data widths.
+The emulator is structured to encourage experimentation and learning. Possible extensions include:
+
+- Adding more instructions such as multiplication, division, or bit shifts.
+- Implementing interrupt handling and I/O devices beyond simple simulated input/output.
+- Developing a simple assembler and loader for human readable program writing.
+- Supporting larger memory sizes or different data widths (e.g., 32bit registers).
 
 ---
 
 ## Learning Goals
 
-- Understand core CPU components and their interactions.
-- Gain practical skills in emulator development and software CPU architecture.
-- Explore instruction set design and implementation.
-- Observe real time instruction flow and state mutation.
+- Gain understanding of CPU architecture components and their interaction.
+- Practical experience writing an emulator and instruction decoding.
+- Insight into instruction set design including logical and control flow operations.
+- Observe real time instruction execution and CPU state mutation debugging.
 
 ---
 
