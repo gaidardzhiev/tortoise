@@ -112,7 +112,7 @@ make run_asm_test
 
 ### Assembler Test
 
-I tested the assembler code on the emulator to verify correct instruction execution. Here is the assembler source code I wrote:
+The assembler code was executed on the emulator to validate the correct functioning and execution of each instruction. The following assembler source code was used for this verification:
 ```
 LOAD R0, 0x0F0F
 LOAD R1, 0x3333
@@ -123,7 +123,7 @@ NOT R1
 HALT
 ```
 
-When I assemble the code and pass the binary to the emulator, the following output shows the CPU executing instructions step by step:
+Upon assembling the code and loading the resulting binary into the emulator, the subsequent output illustrates the CPU executing each instruction in a step by step manner.
 ```
 make run_asm_test
 ./as assembler/logic.asm assembler/logic.bin
@@ -155,10 +155,7 @@ executing opcode 0xFF at PC=0x16
 - NOT operation inverts bits in R1 correctly.
 - The program halts after executing all instructions.
 
-The log shows values before and after each logical operation matching the expected results, confirming that both the assembler and CPU emulator are working correctly.
-
-The final machine code is successfully assembled into a binary file and loaded into the emulator memory, where instructions execute as intended.
-
+The log provides a detailed record of register values before and after each logical operation, demonstrating conformity with the expected results and thereby validating the correct functionality of both the assembler and the CPU emulator. The compiled machine code is successfully assembled into a binary file, which is subsequently loaded into the emulator's memory where the instructions execute as intended.
 
 
 ## Extending TORTOISE
