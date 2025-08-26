@@ -20,7 +20,13 @@ typedef enum {
 	OP_STORE = 0x03,
 	OP_JMP = 0x04,
 	OP_JZ = 0x05,
-	OP_HALT = 0xFF
+	OP_HALT = 0xFF,
+	OP_AND = 0x06,
+	OP_OR = 0x07,
+	OP_XOR = 0x08,
+	OP_NOT = 0x09,
+	OP_CALL = 0x0A,
+	OP_RET = 0x0B,
 } Opcode;
 
 //global CPU state
