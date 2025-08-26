@@ -31,4 +31,8 @@ ASM_BIN=as
 assembler: $(ASM_SRC)
 	$(CC) -o $(ASM_BIN) $(ASM_SRC)
 
+run_asm_test:
+	./$(ASM_BIN) assembler/logic.asm assembler/logic.bin
+	./$(TARGET) assembler/logic.bin
+
 .PHONY: all clean test assembler
