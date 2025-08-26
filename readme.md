@@ -89,6 +89,16 @@ The tests include:
 - A simple test verifying `LOAD`, `ADD`, and `HALT` instructions.
 - An extended test covering logical bitwise operations (`AND`, `OR`, `XOR`, `NOT`), subroutine call/return, and correct register and memory behavior.
 
+Build the assembler:
+```
+make assembler
+```
+
+Run assembler test:
+```
+make run_asm_test
+```
+
 ---
 
 ## Assembler
@@ -99,7 +109,6 @@ The tests include:
 - It outputs machine code in a compact binary format ready for loading into emulator memory.
 - This allows writing readable assembly programs for TORTOISE, which can then be assembled and executed on the emulator, providing a complete flow from source code to CPU execution.
 - The assembler is designed to be simple, easy to understand, and easily extensible for adding new instructions or features.
-
 
 ## Extending TORTOISE
 
