@@ -110,6 +110,57 @@ make run_asm_test
 - This allows writing readable assembly programs for TORTOISE, which can then be assembled and executed on the emulator, providing a complete flow from source code to CPU execution.
 - The assembler is designed to be simple, easy to understand, and easily extensible for adding new instructions or features.
 
+### Assembler Test
+
+I tested the assembler code on the emulator to verify correct instruction execution. Here is the assembler source code I wrote:
+```
+LOAD R0, 0x0F0F
+LOAD R1, 0x3333
+AND R0, 0x00FF
+OR R1, 0x00CC
+XOR R0, 0x00FF
+NOT R1
+HALT
+```
+
+When I assemble the code and pass the binary to the emulator, the following output shows the CPU executing instructions step by step:
+```
+make run_asm_test
+./as assembler/logic.asm assembler/logic.bin
+23 bytes written to assembler/logic.bin
+./tortoise assembler/logic.bin
+cpu_init: PC=0x0 SP=0x10000
+loaded 23 bytes into memory
+executing opcode 0x1 at PC=0x0
+executing opcode 0x1 at PC=0x4
+executing opcode 0x6 at PC=0x8
+AND before: R0=0xF0F val=0xFF
+AND after: R0=0xF
+executing opcode 0x7 at PC=0xC
+OR before: R1=0x3333 val=0xCC
+OR after: R1=0x33FF
+executing opcode 0x8 at PC=0x10
+XOR before: R0=0xF val=0xFF
+XOR after: R0=0xF0
+executing opcode 0x9 at PC=0x14
+NOT before: R1=0x33FF
+NOT after: R1=0xCC00
+executing opcode 0xFF at PC=0x16
+```
+
+- Initial values loaded into registers R0 and R1.
+- Bitwise AND on R0 masks the bits correctly.
+- Bitwise OR on R1 properly sets bits.
+- XOR operation toggles bits in R0 as expected.
+- NOT operation inverts bits in R1 correctly.
+- The program halts after executing all instructions.
+
+The log shows values before and after each logical operation matching the expected results, confirming that both the assembler and CPU emulator are working correctly.
+
+The final machine code is successfully assembled into a binary file and loaded into the emulator memory, where instructions execute as intended.
+
+
+
 ## Extending TORTOISE
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:
