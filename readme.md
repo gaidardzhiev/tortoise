@@ -37,7 +37,7 @@ The emulator supports a set of instructions facilitating data movement, arithmet
 
 ---
 
-### Fetch-Decode-Execute Cycle
+### Fetch Decode Execute Cycle
 
 The CPU operates by repeatedly performing the following steps:
 
