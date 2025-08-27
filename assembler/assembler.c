@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <strings.h>
 
 #define MAX_LINE_LEN 128
 #define MAX_CODE_SIZE 65536

@@ -1,9 +1,13 @@
-CC=gcc
-CFLAGS=-Wall -Wextra -std=c11 -g
+CC:=$(shell command -v musl-gcc 2>/dev/null || command -v gcc 2>/dev/null || command -v cc 2>/dev/null)
+CFLAGS=-Wall -Wextra -std=c11 -g -static
 INCLUDES=-Iinclude
 SRC=src/main.c src/cpu.c
 OBJ=$(SRC:.c=.o)
 TARGET=tortoise
+
+ifeq ($(strip $(CC)),)
+CC=cc
+endif
 
 all: $(TARGET)
 
@@ -29,7 +33,7 @@ ASM_SRC=assembler/assembler.c
 ASM_BIN=as
 
 assembler: $(ASM_SRC)
-	$(CC) -o $(ASM_BIN) $(ASM_SRC)
+	$(CC) $(CFLAGS) -o $(ASM_BIN) $(ASM_SRC)
 
 run_asm_test:
 	./$(ASM_BIN) assembler/logic.asm assembler/logic.bin
