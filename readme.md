@@ -166,7 +166,7 @@ The emulator is structured to encourage experimentation and learning. Possible e
 - Implementing interrupt handling and I/O devices beyond simple simulated input/output.
 - ~~Developing a simple assembler and loader for human readable program writing.~~ [DONE]
 - Supporting larger memory sizes or different data widths (e.g., 32bit registers).
-- Fix compiler warnings.
+- ~~Fix compiler warnings.~~ [DONE]
 
 ---
 
