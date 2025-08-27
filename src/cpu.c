@@ -83,7 +83,7 @@ static void execute_instruction(void) {
 	uint8_t opcode = fetch_byte();
 	printf("executing opcode 0x%X at PC=0x%X\n", opcode, cpu.PC - 1);
 	uint8_t reg;
-	uint16_t val, addr;
+	uint32_t val, addr;
 	switch (opcode) {
 	case OP_NOP:
 		break;
