@@ -4,24 +4,6 @@
 
 CPU cpu;
 
-/*typedef enum {
-    OP_NOP = 0x00,
-    OP_LOAD = 0x01,
-    OP_ADD = 0x02,
-    OP_STORE = 0x03,
-    OP_JMP = 0x04,
-    OP_JZ = 0x05,
-    OP_AND = 0x06,
-    OP_OR = 0x07,
-    OP_XOR = 0x08,
-    OP_NOT = 0x09,
-    OP_CALL = 0x0A,
-    OP_RET = 0x0B,
-    OP_IN = 0x0C,
-    OP_OUT = 0x0D,
-    OP_HALT = 0xFF
-} Opcode;*/
-
 static uint8_t fetch_byte(void) {
 	return cpu.memory[cpu.PC++];
 }
