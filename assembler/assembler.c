@@ -13,7 +13,6 @@
 #define MAX_LINE_LEN 128
 #define MAX_CODE_SIZE 65536
 
-//opcodes
 enum {
 	OP_NOP = 0x00,
 	OP_LOAD = 0x01,
@@ -32,7 +31,6 @@ enum {
 	OP_HALT = 0xFF
 };
 
-//helper to parse register token like "R0" to integer 0
 int parse_register(const char* token) {
 	if (tolower(token[0]) == 'r' && isdigit(token[1])) {
 		int reg = token[1] - '0';
@@ -41,7 +39,6 @@ int parse_register(const char* token) {
 	return -1;
 }
 
-//helper to parse hex or decimal immediate string to uint16_t
 int parse_immediate(const char* token, uint16_t* value) {
 	char* endptr = NULL;
 	unsigned long val = 0;
@@ -55,25 +52,20 @@ int parse_immediate(const char* token, uint16_t* value) {
 	return 1;
 }
 
-//write 16bit value in little endian into buffer at offset
 void write_word(uint8_t* buffer, int offset, uint16_t val) {
 	buffer[offset] = val & 0xFF;
 	buffer[offset + 1] = val >> 8;
 }
 
 int assemble_line(const char* line, uint8_t* buffer, int offset) {
-	//make a modifiable copy of line
-	char line_copy[MAX_LINE_LEN];
-	strncpy(line_copy, line, MAX_LINE_LEN);
-	line_copy[MAX_LINE_LEN - 1] = '\0';
-	//strip comments starting with ';'
+	char line_copy[128];
+	strncpy(line_copy, line, 128);
+	line_copy[128 - 1] = '\0';
 	char* comment_pos = strchr(line_copy, ';');
 	if (comment_pos) *comment_pos = '\0';
-	//trim leading spaces
 	char* start = line_copy;
 	while (isspace((unsigned char)*start)) start++;
-	if (*start == '\0') return offset; //blank or comment line
-	//parse instruction and operands (max 2 operands)
+	if (*start == '\0') return offset;
 	char instr[8] = {0};
 	char op1[8] = {0};
 	char op2[8] = {0};
@@ -82,7 +74,6 @@ int assemble_line(const char* line, uint8_t* buffer, int offset) {
 		fprintf(stderr, "no instruction found in line: %s\n", line);
 		return -1;
 	}
-	//convert instruction to uppercase
 	for (int i = 0; instr[i]; i++) instr[i] = toupper(instr[i]);
 	int reg;
 	uint16_t val;
@@ -328,11 +319,10 @@ int main(int argc, char* argv[]) {
 		fclose(fin);
 		return 1;
 	}
-	uint8_t code[MAX_CODE_SIZE];
+	uint8_t code[65536];
 	int offset = 0;
-	char line[MAX_LINE_LEN];
+	char line[128];
 	while (fgets(line, sizeof(line), fin)) {
-		//skip comment or empty lines
 		char* p = line;
 		while (isspace((unsigned char)*p)) p++;
 		if (*p == ';' || *p == '\0' || *p == '\n') continue;
