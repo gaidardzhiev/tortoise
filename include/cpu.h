@@ -8,17 +8,16 @@
 
 #include <stdint.h>
 
-#define MEMORY_SIZE 65536		//64KB memory
+#define MEMORY_SIZE 65536
 
 typedef struct {
-	uint32_t PC;			//program counter
-	uint32_t registers[8];		//general purpose registers R0-R7
-	uint32_t SP;			//stack Pointer
-	uint8_t memory[MEMORY_SIZE];	//RAM
-	uint8_t halted;			//halt flag
+	uint32_t PC;
+	uint32_t registers[8];
+	uint32_t SP;
+	uint8_t memory[MEMORY_SIZE];
+	uint8_t halted;
 } CPU;
 
-//opcode definitions including logical ops and calls
 typedef enum {
 	OP_NOP = 0x00,
 	OP_LOAD = 0x01,
@@ -37,16 +36,9 @@ typedef enum {
 	OP_HALT = 0xFF
 } Opcode;
 
-//external CPU state variable
 extern CPU cpu;
-
-//initializes CPU state: registers, PC, SP, memory
 void cpu_init(void);
-
-//main loop: fetch, decode, execute instructions until halted
 void cpu_run(void);
-
-//load machine code program into CPU memory
 void load_program(const uint8_t *program, size_t size);
 
-#endif // CPU_H
+#endif

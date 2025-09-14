@@ -153,7 +153,7 @@ static void execute_instruction(void) {
 		reg = fetch_byte();
 		addr = fetch_word();
 		if (reg < 8 && addr == 0xFF00)
-			cpu.registers[reg] = 'A'; //example input
+			cpu.registers[reg] = 'A';
 		break;
 	case OP_OUT:
 		reg = fetch_byte();
