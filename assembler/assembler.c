@@ -305,7 +305,7 @@ int assemble_line(const char* line, uint8_t* buffer, int offset) {
 
 int main(int argc, char* argv[]) {
 	if (argc != 3) {
-		fprintf(stderr, "usage: %s input.asm output.bin\n", argv[0]);
+		fprintf(stderr, "usage: %s in.asm out.bin\n", argv[0]);
 		return 1;
 	}
 	FILE* fin = fopen(argv[1], "r");
