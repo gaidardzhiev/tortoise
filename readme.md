@@ -159,7 +159,7 @@ The log provides a detailed record of register values before and after each logi
 
 ### Truth Table Test
 
-The `assembler/truth.asm' code was written to test the truth table for two input bits stored in registers R0 and R1. It outputs the inputs and the results of logical operations AND, OR, XOR, and NOT on the inputs.
+The `assembler/truth.asm` code was written to test the truth table for two input bits stored in registers R0 and R1. It outputs the inputs and the results of logical operations AND, OR, XOR, and NOT on the inputs.
 
 After assembling and loading the binary into the emulator, the `tortoise` CPU executes each instruction sequentially and outputs the input bits followed by the results of the logical operations. The expected outputs correspond exactly to the truth table for two boolean inputs:
 
