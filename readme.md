@@ -67,7 +67,7 @@ Instructions use fixed size formats for simplicity of decoding.
   - `assembler.c`: A simple assembler converting human readable assembly into binary machine code compatible with TORTOISE CPU  
   - `.asm` files containing assembly source programs  
 - `Makefile`  
-  Builds the emulator, assembler, and tests 
+  Build instructions for the emulator, assembler, and tests 
 
 ---
 
