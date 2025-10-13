@@ -157,6 +157,20 @@ executing opcode 0xFF at PC=0x16
 
 The log provides a detailed record of register values before and after each logical operation, demonstrating conformity with the expected results and thereby validating the correct functionality of both the assembler and the CPU emulator. The compiled machine code is successfully assembled into a binary file, which is subsequently loaded into the emulator's memory where the instructions execute as intended.
 
+### Truth Table Test
+
+The `assembler/truth.asm' code was written to test the truth table for two input bits stored in registers R0 and R1. It outputs the inputs and the results of logical operations AND, OR, XOR, and NOT on the inputs.
+
+After assembling and loading the binary into the emulator, the `tortoise` CPU executes each instruction sequentially and outputs the input bits followed by the results of the logical operations. The expected outputs correspond exactly to the truth table for two boolean inputs:
+
+- Inputs A and B are output first for each test case.
+- The AND result outputs 1 only if both A and B are 1, else 0.
+- The OR result outputs 1 if either A or B is 1, else 0.
+- The XOR result outputs 1 if A and B differ, else 0.
+- The NOT result outputs the bitwise complement of input A.
+- The sequence repeats for all four input combinations (00, 01, 10, 11) before halting.
+
+This test verifies the correct functioning of bitwise instructions, register loads, and output operations on the emulator, demonstrating both the assembler’s correctness in encoding instructions and the CPU's ability to execute them precisely.
 
 ## Extending TORTOISE
 

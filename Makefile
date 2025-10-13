@@ -38,5 +38,7 @@ assembler: $(ASM_SRC)
 run_asm_test:
 	./$(ASM_BIN) assembler/logic.asm assembler/logic.bin
 	./$(TARGET) assembler/logic.bin
+	./$(ASM_BIN) assembler/truth.asm assembler/truth.bin
+	./$(TARGET) assembler/truth.bin
 
 .PHONY: all clean test assembler
