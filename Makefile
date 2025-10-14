@@ -4,6 +4,10 @@ INCLUDES=-Iinclude
 SRC=src/main.c src/cpu.c
 OBJ=$(SRC:.c=.o)
 TARGET=tortoise
+TEST_SRC=tests/test_cpu.c src/cpu.c
+TEST_BIN=test_cpu
+ASM_SRC=assembler/assembler.c
+ASM_BIN=as
 
 ifeq ($(strip $(CC)),)
 CC=cc
@@ -17,20 +21,11 @@ $(TARGET): $(OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin
-
-TEST_SRC=tests/test_cpu.c src/cpu.c
-TEST_BIN=test_cpu
-
 test: $(TEST_SRC)
 	$(CC) $(CFLAGS) -Iinclude -o $(TEST_BIN) $(TEST_SRC)
 
 run_test: test
 	./$(TEST_BIN)
-
-ASM_SRC=assembler/assembler.c
-ASM_BIN=as
 
 assembler: $(ASM_SRC)
 	$(CC) $(CFLAGS) -o $(ASM_BIN) $(ASM_SRC)
@@ -40,5 +35,8 @@ run_asm_test:
 	./$(TARGET) assembler/logic.bin
 	./$(ASM_BIN) assembler/truth.asm assembler/truth.bin
 	./$(TARGET) assembler/truth.bin
+
+clean:
+	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin
 
 .PHONY: all clean test assembler
