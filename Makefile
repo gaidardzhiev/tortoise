@@ -35,6 +35,14 @@ run_asm_test:
 	./$(TARGET) assembler/logic.bin
 	./$(ASM_BIN) assembler/truth.asm assembler/truth.bin
 	./$(TARGET) assembler/truth.bin
+	./$(ASM_BIN) assembler/bitwise_masking.asm assembler/bitwise_masking.bin
+	./$(TARGET) assembler/bitwise_masking.bin
+	./$(ASM_BIN) assembler/or_chain.asm assembler/or_chain.bin
+	./$(TARGET) assembler/or_chain.bin
+	./$(ASM_BIN) assembler/toggle_bits.asm assembler/toggle_bits.bin
+	./$(TARGET) assembler/toggle_bits.bin
+	./$(ASM_BIN) assembler/xor_flip_flop.asm assembler/xor_flip_flop.bin
+	./$(TARGET) assembler/xor_flip_flop.bin
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin

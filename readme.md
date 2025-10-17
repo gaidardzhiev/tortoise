@@ -172,6 +172,33 @@ After assembling and loading the binary into the emulator, the `tortoise` CPU ex
 
 This test verifies the correct functioning of bitwise instructions, register loads, and output operations on the emulator, demonstrating both the assembler’s correctness in encoding instructions and the CPU's ability to execute them precisely.
 
+### Bitwise Masking Test
+
+The `assembler/bitwise_masking.asm` program was designed to verify the correct execution of bitwise AND and XOR instructions. It first loads the value 0xABCD into register R0, applies an AND operation with 0x00FF which masks the higher byte leaving the lower byte intact, and then applies an XOR with 0x00FF to toggle bits in the masked value. After executing these instructions sequentially, the emulator outputs the resulting R0 value.
+
+This test demonstrates the precise functionality of bitwise masking and toggling operations, confirming that the emulator correctly processes immediate bitwise instructions, modifies register contents appropriately, and produces the correct final output.
+
+### OR Chain Test
+
+The `assembler/or_chain.asm` source tests the behavior of the OR instruction chained consecutively. It loads 0x0001 into R0, performs an OR with 0x0004 updating R0 to 0x0005, then another OR with 0x0008 resulting in 0x000D. The final value of R0 is output before halting.
+
+This program validates that multiple OR operations can be combined to cumulatively set bits in a register, reflecting the emulator's capability to correctly handle sequential logical OR instructions and update registers appropriately.
+
+### Bitwise NOT Toggle Test
+
+The `assembler/toggle_bits.asm` assembly verifies the NOT instruction functionality. The program loads R0 with 0x0F0F and applies the bitwise NOT operation, flipping each bit in R0 to yield 0xF0F0. This inverted value is then output before halting.
+
+This test confirms the emulator's proper implementation of the NOT instruction, ensuring correct bitwise inversion in a 16-bit register and verifying that the output instruction correctly reports the resultant value.
+
+---
+
+### XOR Flip Flop Test
+
+The `assembler/xor_flip_flop.asm` program tests the XOR instruction’s ability to toggle bits against a fixed mask. Initially, R0 is loaded with the alternating bit pattern 0xAAAA, and then XORed with 0xFFFF which flips all bits, resulting in 0x5555. The final register state is output before halting.
+
+This test validates that the emulator's XOR opcode correctly toggles bits in a register when combined with an immediate operand, demonstrating accurate execution of bitwise logical instructions and output handling.
+
+
 ## Extending TORTOISE
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:
