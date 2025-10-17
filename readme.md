@@ -196,6 +196,8 @@ The `assembler/xor_flip_flop.asm` program tests the XOR instruction’s ability 
 
 This test validates that the emulator's XOR opcode correctly toggles bits in a register when combined with an immediate operand, demonstrating accurate execution of bitwise logical instructions and output handling.
 
+---
+
 ## Extending TORTOISE
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:
