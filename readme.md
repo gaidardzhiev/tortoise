@@ -190,14 +190,11 @@ The `assembler/toggle_bits.asm` assembly verifies the NOT instruction functional
 
 This test confirms the emulator's proper implementation of the NOT instruction, ensuring correct bitwise inversion in a 16-bit register and verifying that the output instruction correctly reports the resultant value.
 
----
-
 ### XOR Flip Flop Test
 
 The `assembler/xor_flip_flop.asm` program tests the XOR instruction’s ability to toggle bits against a fixed mask. Initially, R0 is loaded with the alternating bit pattern 0xAAAA, and then XORed with 0xFFFF which flips all bits, resulting in 0x5555. The final register state is output before halting.
 
 This test validates that the emulator's XOR opcode correctly toggles bits in a register when combined with an immediate operand, demonstrating accurate execution of bitwise logical instructions and output handling.
-
 
 ## Extending TORTOISE
 
