@@ -112,7 +112,7 @@ make run_asm_test
 
 ### Assembler Test
 
-The assembler code was executed on the emulator to validate the correct functioning and execution of each instruction. The following assembler source code was used for this verification:
+We used the following assembler source to test and confirm that each instruction executes correctly on the emulator:
 ```
 LOAD R0, 0x0F0F
 LOAD R1, 0x3333
