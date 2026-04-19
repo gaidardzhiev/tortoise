@@ -43,6 +43,8 @@ run_asm_test:
 	./$(TARGET) assembler/toggle_bits.bin
 	./$(ASM_BIN) assembler/xor_flip_flop.asm assembler/xor_flip_flop.bin
 	./$(TARGET) assembler/xor_flip_flop.bin
+	./$(ASM_BIN) assembler/flags_test.asm assembler/flags_test.bin
+	./$(TARGET) assembler/flags_test.bin
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin

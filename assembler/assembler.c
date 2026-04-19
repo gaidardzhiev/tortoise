@@ -28,6 +28,12 @@ enum {
 	OP_RET = 0x0B,
 	OP_IN = 0x0C,
 	OP_OUT = 0x0D,
+	OP_SUB = 0x0E,
+	OP_CMP = 0x0F,
+	OP_JC = 0x10,
+	OP_JN = 0x11,
+	OP_JO = 0x12,
+	OP_JNZ = 0x13,
 	OP_HALT = 0xFF
 };
 
@@ -295,6 +301,96 @@ int assemble_line(const char* line, uint8_t* buffer, int offset) {
 		buffer[offset++] = OP_OUT;
 		buffer[offset++] = (uint8_t)reg;
 		write_word(buffer, offset, val);
+		offset += 2;
+		return offset;
+	} else if (strcmp(instr, "SUB") == 0) {
+		if (args < 3) {
+			fprintf(stderr, "SUB requires 2 operands\n");
+			return -1;
+		}
+		reg = parse_register(op1);
+		if (reg == -1) {
+			fprintf(stderr, "invalid register %s\n", op1);
+			return -1;
+		}
+		if (!parse_immediate(op2, &val)) {
+			fprintf(stderr, "invalid immediate %s\n", op2);
+			return -1;
+		}
+		buffer[offset++] = OP_SUB;
+		buffer[offset++] = (uint8_t)reg;
+		write_word(buffer, offset, val);
+		offset += 2;
+		return offset;
+	} else if (strcmp(instr, "CMP") == 0) {
+		if (args < 3) {
+			fprintf(stderr, "CMP requires 2 operands\n");
+			return -1;
+		}
+		reg = parse_register(op1);
+		if (reg == -1) {
+			fprintf(stderr, "invalid register %s\n", op1);
+			return -1;
+		}
+		if (!parse_immediate(op2, &val)) {
+			fprintf(stderr, "invalid immediate %s\n", op2);
+			return -1;
+		}
+		buffer[offset++] = OP_CMP;
+		buffer[offset++] = (uint8_t)reg;
+		write_word(buffer, offset, val);
+		offset += 2;
+		return offset;
+	} else if (strcmp(instr, "JC") == 0) {
+		if (args < 2) {
+			fprintf(stderr, "JC requires 1 operand\n");
+			return -1;
+		}
+		if (!parse_immediate(op1, &addr)) {
+			fprintf(stderr, "invalid address %s\n", op1);
+			return -1;
+		}
+		buffer[offset++] = OP_JC;
+		write_word(buffer, offset, addr);
+		offset += 2;
+		return offset;
+	} else if (strcmp(instr, "JN") == 0) {
+		if (args < 2) {
+			fprintf(stderr, "JN requires 1 operand\n");
+			return -1;
+		}
+		if (!parse_immediate(op1, &addr)) {
+			fprintf(stderr, "invalid address %s\n", op1);
+			return -1;
+		}
+		buffer[offset++] = OP_JN;
+		write_word(buffer, offset, addr);
+		offset += 2;
+		return offset;
+	} else if (strcmp(instr, "JO") == 0) {
+		if (args < 2) {
+			fprintf(stderr, "JO requires 1 operand\n");
+			return -1;
+		}
+		if (!parse_immediate(op1, &addr)) {
+			fprintf(stderr, "invalid address %s\n", op1);
+			return -1;
+		}
+		buffer[offset++] = OP_JO;
+		write_word(buffer, offset, addr);
+		offset += 2;
+		return offset;
+	} else if (strcmp(instr, "JNZ") == 0) {
+		if (args < 2) {
+			fprintf(stderr, "JNZ requires 1 operand\n");
+			return -1;
+		}
+		if (!parse_immediate(op1, &addr)) {
+			fprintf(stderr, "invalid address %s\n", op1);
+			return -1;
+		}
+		buffer[offset++] = OP_JNZ;
+		write_word(buffer, offset, addr);
 		offset += 2;
 		return offset;
 	} else {

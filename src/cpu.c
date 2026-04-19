@@ -61,6 +61,27 @@ static uint16_t pop_word(void) {
 	return val;
 }
 
+static void set_flags(uint32_t a, uint32_t b, uint32_t result, uint8_t is_sub) {
+	uint16_t r16 = result & 0xFFFF;
+	cpu.flags = 0;
+	if (r16 == 0)
+		cpu.flags |= FLAG_Z;
+	if (is_sub ? (b > a) : (result > 0xFFFF))
+		cpu.flags |= FLAG_C;
+	if (r16 & 0x8000)
+		cpu.flags |= FLAG_S;
+	uint8_t sa = (a >> 15) & 1;
+	uint8_t sb = (b >> 15) & 1;
+	uint8_t sr = (r16 >> 15) & 1;
+	if (is_sub) {
+		if (sa != sb && sr != sa)
+			cpu.flags |= FLAG_V;
+	} else {
+		if (sa == sb && sr != sa)
+			cpu.flags |= FLAG_V;
+	}
+}
+
 static void execute_instruction(void) {
 	if (cpu.PC >= MEMORY_SIZE) {
 		fprintf(stderr, "PC out of bounds\n");
@@ -82,7 +103,12 @@ static void execute_instruction(void) {
 	case OP_ADD:
 		reg = fetch_byte();
 		val = fetch_word();
-		if (reg < 8) cpu.registers[reg] += val;
+		if (reg < 8) {
+			uint32_t a = cpu.registers[reg];
+			uint32_t result = a + val;
+			set_flags(a, val, result, 0);
+			cpu.registers[reg] = result & 0xFFFF;
+		}
 		break;
 	case OP_STORE:
 		reg = fetch_byte();
@@ -162,6 +188,43 @@ static void execute_instruction(void) {
 			putchar(cpu.registers[reg] & 0xFF);
 			fflush(stdout);
 		}
+		break;
+	case OP_SUB:
+		reg = fetch_byte();
+		val = fetch_word();
+		if (reg < 8) {
+			uint32_t a = cpu.registers[reg];
+			uint32_t result = (a - val) & 0xFFFF;
+			set_flags(a, val, result, 1);
+			cpu.registers[reg] = result;
+			printf("SUB: R%d=0x%X - 0x%X = 0x%X flags=0x%X\n", reg, a, val, result, cpu.flags);
+		}
+		break;
+	case OP_CMP:
+		reg = fetch_byte();
+		val = fetch_word();
+		if (reg < 8) {
+			uint32_t a = cpu.registers[reg];
+			uint32_t result = (a - val) & 0xFFFF;
+			set_flags(a, val, result, 1);
+			printf("CMP: R%d=0x%X vs 0x%X flags=0x%X\n", reg, a, val, cpu.flags);
+		}
+		break;
+	case OP_JC:
+		addr = fetch_word();
+		if ((cpu.flags & FLAG_C) && addr < MEMORY_SIZE) cpu.PC = addr;
+		break;
+	case OP_JN:
+		addr = fetch_word();
+		if ((cpu.flags & FLAG_S) && addr < MEMORY_SIZE) cpu.PC = addr;
+		break;
+	case OP_JO:
+		addr = fetch_word();
+		if ((cpu.flags & FLAG_V) && addr < MEMORY_SIZE) cpu.PC = addr;
+		break;
+	case OP_JNZ:
+		addr = fetch_word();
+		if (!(cpu.flags & FLAG_Z) && addr < MEMORY_SIZE) cpu.PC = addr;
 		break;
 	case OP_HALT:
 		cpu.halted = 1;

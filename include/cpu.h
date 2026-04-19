@@ -16,7 +16,13 @@ typedef struct {
 	uint32_t SP;
 	uint8_t memory[MEMORY_SIZE];
 	uint8_t halted;
+	uint8_t flags;
 } CPU;
+
+#define FLAG_Z (1 << 0)
+#define FLAG_C (1 << 1)
+#define FLAG_S (1 << 2)
+#define FLAG_V (1 << 3)
 
 typedef enum {
 	OP_NOP = 0x00,
@@ -33,6 +39,12 @@ typedef enum {
 	OP_RET = 0x0B,
 	OP_IN = 0x0C,
 	OP_OUT = 0x0D,
+	OP_SUB = 0x0E,
+	OP_CMP = 0x0F,
+	OP_JC = 0x10,
+	OP_JN = 0x11,
+	OP_JO = 0x12,
+	OP_JNZ = 0x13,
 	OP_HALT = 0xFF
 } Opcode;
 
