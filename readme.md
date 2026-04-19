@@ -6,12 +6,12 @@ TORTOISE is a simple CPU emulator implemented in C designed for educational purp
 ## Architecture
 
 ### CPU Structure
-**Registers:** 8 general purpose 16bit registers (R0, R7).
-**Program Counter (PC):** 32bit register pointing to the current instruction in memory, allowing addressing of the full 64KB memory space.
-**Stack Pointer (SP):** 32bit register managing the call stack in memory.
-**Flags Register:** 8bit register updated by arithmetic instructions, carrying Zero (Z), Carry (C), Sign (S), and Overflow (V) flags.
-**Memory:** 64KB byte addressable memory representing RAM.
-**Halted Flag:** Indicates whether the CPU is halted.
+- **Registers:** 8 general purpose 16bit registers (R0, R7).
+- **Program Counter (PC):** 32bit register pointing to the current instruction in memory, allowing addressing of the full 64KB memory space.
+- **Stack Pointer (SP):** 32bit register managing the call stack in memory.
+- **Flags Register:** 8bit register updated by arithmetic instructions, carrying Zero (Z), Carry (C), Sign (S), and Overflow (V) flags.
+- **Memory:** 64KB byte addressable memory representing RAM.
+- **Halted Flag:** Indicates whether the CPU is halted.
 
 ### Instruction Set
 The emulator supports a set of instructions facilitating data movement, arithmetic, logical operations, control flow, and program termination:
@@ -199,14 +199,14 @@ flags=0x1 on the final SUB confirms Z was set. flags=0x6 on the CMP confirms bot
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:
 
-~~Developing a simple assembler and loader for human readable program writing.~~ [DONE]
-~~Fix compiler warnings.~~ [DONE]
-~~Flags register with SUB, CMP, and conditional jumps (JC, JN, JO, JNZ).~~ [DONE]
-Adding shift instructions (SHL, SHR) to complete the ALU.
-Adding multiplication and division instructions.
-Implementing a two-pass assembler to support named labels in assembly source.
-Implementing interrupt handling and I/O devices beyond simple simulated input/output.
-Supporting larger memory sizes or different data widths (32bit registers).
+~~- Developing a simple assembler and loader for human readable program writing.~~ [DONE]
+~~- Fix compiler warnings.~~ [DONE]
+~~- Flags register with SUB, CMP, and conditional jumps (JC, JN, JO, JNZ).~~ [DONE]
+- Adding shift instructions (SHL, SHR) to complete the ALU.
+- Adding multiplication and division instructions.
+- Implementing a two-pass assembler to support named labels in assembly source.
+- Implementing interrupt handling and I/O devices beyond simple simulated input/output.
+- Supporting larger memory sizes or different data widths (32bit registers).
 
 ## Learning Goals
 
