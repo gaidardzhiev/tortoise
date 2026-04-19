@@ -199,9 +199,9 @@ flags=0x1 on the final SUB confirms Z was set. flags=0x6 on the CMP confirms bot
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:
 
-~~- Developing a simple assembler and loader for human readable program writing.~~ [DONE]
-~~- Fix compiler warnings.~~ [DONE]
-~~- Flags register with SUB, CMP, and conditional jumps (JC, JN, JO, JNZ).~~ [DONE]
+- ~~Developing a simple assembler and loader for human readable program writing.~~
+- ~~Fix compiler warnings.~~
+- ~~Flags register with SUB, CMP, and conditional jumps (JC, JN, JO, JNZ).~~
 - Adding shift instructions (SHL, SHR) to complete the ALU.
 - Adding multiplication and division instructions.
 - Implementing a two-pass assembler to support named labels in assembly source.
