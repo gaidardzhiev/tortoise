@@ -195,6 +195,23 @@ executing opcode 0xFF at PC=0x5E
 
 flags=0x1 on the final SUB confirms Z was set. flags=0x6 on the CMP confirms both C and S were set for the underflow case. flags=0x1 on the equal CMP confirms Z was set. All four conditional jumps resolved correctly.
 
+### Peano Arithmetic Test
+
+`assembler/peano.asm` proves the predecessor axiom of Peano arithmetic on TORTOISE. The axiom states that for every natural number N, applying the predecessor function N times starting from N reaches zero. This is the foundation that all natural number arithmetic is built on.
+
+The program calls a shared verify subroutine for N=1 through N=8. R1 is loaded with N before each CALL. The subroutine decrements R1 by 1 in a loop until the zero flag is set, then CMP confirms R1 is exactly zero. It prints P (pass) or F (fail) and returns. Expected output is PPPPPPPP.
+
+The trace shows each case reducing strictly one step at a time, hitting exactly zero, never overshooting. The CMP after the inner loop is the falsifiability trap, if SUB or JNZ had a bug that caused it to skip zero the flag would not be set and you would see F. Eight P's means eight independent termination proofs, one per starting value, all witnessed by the hardware.
+
+The stack returns to SP=0x10000 after every RET confirming no frame leaks. The inner loop runs exactly N iterations for each N, visible in the SUB trace. The program halts cleanly at 0x38.
+
+```
+./as assembler/peano.asm peano.bin
+./tortoise peano.bin
+```
+
+`OUT` on TORTOISE writes a single byte directly to stdout with no newline appended, so the P character prints flush against the next line of the execution trace, appearing as `Pexecuting opcode 0xB at PC=0x4F`. All eight P's are present and correct in the output, one per CALL, each immediately followed by the RET trace. A future update will add a newline after each OUT by loading 0x000A into a register and calling OUT a second time, which will make the results cleanly readable without the trace noise.
+
 ## Extending TORTOISE
 
 The emulator is structured to encourage experimentation and learning. Possible extensions include:

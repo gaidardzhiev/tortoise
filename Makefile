@@ -45,6 +45,8 @@ run_asm_test:
 	./$(TARGET) assembler/xor_flip_flop.bin
 	./$(ASM_BIN) assembler/flags_test.asm assembler/flags_test.bin
 	./$(TARGET) assembler/flags_test.bin
+	./$(ASM_BIN) assembler/peano.asm assembler/peano.bin
+	./$(TARGET) assembler/peano.bin
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin
