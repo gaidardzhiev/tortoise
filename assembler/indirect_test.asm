@@ -1,0 +1,25 @@
+LOAD R0, 10
+MOV R1, R0
+ADD R1, R0
+CMP R1, 20
+JNZ indir_fail
+SUB R1, R0
+CMP R1, 10
+JNZ indir_fail
+PUSH R1
+LOAD R2, 0
+POP R2
+CMP R2, 10
+JNZ indir_fail
+LOAD R3, 0x1000
+STORE [R3 + 4], R1
+LOAD R4, [R3 + 4]
+CMP R4, 10
+JNZ indir_fail
+LOAD R5, 0x004E
+OUT R5, 0xFF00
+HALT
+indir_fail:
+LOAD R5, 0x0046
+OUT R5, 0xFF00
+HALT

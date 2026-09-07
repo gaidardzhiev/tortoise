@@ -1,0 +1,11 @@
+LOAD R0, isr_handler
+STORE R0, 0x0104
+LOAD R1, 0x0011
+STI
+INT 2
+LOAD R3, 0x0049
+OUT R3, 0xFF00
+HALT
+isr_handler:
+LOAD R2, 0x0022
+IRET

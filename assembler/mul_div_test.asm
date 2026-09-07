@@ -1,0 +1,14 @@
+LOAD R0, 12
+MUL R0, 5
+CMP R0, 60
+JNZ mul_fail
+DIV R0, 4
+CMP R0, 15
+JNZ mul_fail
+LOAD R2, 0x004D
+OUT R2, 0xFF00
+HALT
+mul_fail:
+LOAD R2, 0x0046
+OUT R2, 0xFF00
+HALT

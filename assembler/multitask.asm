@@ -1,0 +1,21 @@
+LOAD R0, timer_isr
+STORE R0, 0x0102
+LOAD R0, 0x2000
+LOAD R1, 0
+STORE [R0 + 0], R1
+STI
+OUT R0, 0xFF02
+LOAD R1, [R0 + 0]
+CMP R1, 1
+JNZ multi_fail
+LOAD R2, 0x004B
+OUT R2, 0xFF00
+HALT
+multi_fail:
+LOAD R2, 0x0046
+OUT R2, 0xFF00
+HALT
+timer_isr:
+LOAD R3, 1
+STORE [R0 + 0], R3
+IRET

@@ -1,0 +1,17 @@
+LOAD R0, 0x0001
+SHL R0, 4
+OUT R0, 0x0000
+SHR R0, 2
+OUT R0, 0x0000
+LOAD R1, 0x8000
+SHL R1, 1
+JC shift_carry_pass
+JMP shift_fail
+shift_carry_pass:
+LOAD R2, 0x0053
+OUT R2, 0xFF00
+HALT
+shift_fail:
+LOAD R2, 0x0046
+OUT R2, 0xFF00
+HALT

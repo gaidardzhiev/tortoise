@@ -1,10 +1,6 @@
-/*
- * Copyright (C) 2025 Ivan Gaydardzhiev
- * Licensed under the GPL-3.0-only
- */
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "cpu.h"
 
 void load_binary(const char *filename) {
@@ -23,11 +19,25 @@ void load_binary(const char *filename) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		printf("usage: %s <program.bin>\n", argv[0]);
+		printf("usage: %s [-d] <program.bin>\n", argv[0]);
 		return 1;
 	}
+	int debug_mode = 0;
+	const char *filename = argv[1];
+	if (strcmp(argv[1], "-d") == 0) {
+		if (argc < 3) {
+			printf("usage: %s -d <program.bin>\n", argv[0]);
+			return 1;
+		}
+		debug_mode = 1;
+		filename = argv[2];
+	}
 	cpu_init();
-	load_binary(argv[1]);
-	cpu_run();
+	load_binary(filename);
+	if (debug_mode) {
+		cpu_debug();
+	} else {
+		cpu_run();
+	}
 	return 0;
 }
