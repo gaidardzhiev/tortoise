@@ -1,0 +1,2 @@
+rc:sysinit:/bin/sh /etc/rc
+con:respawn:/bin/getty /dev/console

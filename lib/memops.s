@@ -1,0 +1,96 @@
+.text
+.globl memcpy
+memcpy:
+LDW R0, [SP + 4]
+LDW R1, [SP + 8]
+LDW R2, [SP + 12]
+PUSH32 R0
+MOV R3, R0
+OR32 R3, R1
+TESTI R3, 3
+BNE .bytes
+.w16:
+CMP32 R2, 16
+BLO .w4
+LDW R3, [R1]
+STW [R0], R3
+LDW R3, [R1 + 4]
+STW [R0 + 4], R3
+LDW R3, [R1 + 8]
+STW [R0 + 8], R3
+LDW R3, [R1 + 12]
+STW [R0 + 12], R3
+ADD32 R0, 16
+ADD32 R1, 16
+SUB32 R2, 16
+JMPREL .w16
+.w4:
+CMP32 R2, 4
+BLO .bytes
+LDW R3, [R1]
+STW [R0], R3
+ADD32 R0, 4
+ADD32 R1, 4
+SUB32 R2, 4
+JMPREL .w4
+.bytes:
+CMP32 R2, 0
+BEQ .done
+LDB R3, [R1]
+STB [R0], R3
+ADD32 R0, 1
+ADD32 R1, 1
+SUB32 R2, 1
+JMPREL .bytes
+.done:
+POP32 R0
+RET32
+.globl memset
+memset:
+LDW R0, [SP + 4]
+LDW R1, [SP + 8]
+LDW R2, [SP + 12]
+PUSH32 R0
+AND32 R1, 0xFF
+MOV R3, R1
+SHL32 R3, 8
+OR32 R1, R3
+MOV R3, R1
+SHL32 R3, 16
+OR32 R1, R3
+.head:
+CMP32 R2, 0
+BEQ .done
+TESTI R0, 3
+BEQ .w16
+STB [R0], R1
+ADD32 R0, 1
+SUB32 R2, 1
+JMPREL .head
+.w16:
+CMP32 R2, 16
+BLO .w4
+STW [R0], R1
+STW [R0 + 4], R1
+STW [R0 + 8], R1
+STW [R0 + 12], R1
+ADD32 R0, 16
+SUB32 R2, 16
+JMPREL .w16
+.w4:
+CMP32 R2, 4
+BLO .tail
+STW [R0], R1
+ADD32 R0, 4
+SUB32 R2, 4
+JMPREL .w4
+.tail:
+CMP32 R2, 0
+BEQ .done
+STB [R0], R1
+ADD32 R0, 1
+SUB32 R2, 1
+JMPREL .tail
+.done:
+POP32 R0
+RET32

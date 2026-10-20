@@ -1,0 +1,4 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+kmalloc selftest ok, 3200 allocations of 1 to 3000 bytes, no pages leaked
+$ shutdown 0

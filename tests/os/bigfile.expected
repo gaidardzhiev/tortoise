@@ -1,0 +1,8 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/bigfile
+wrote 8908800 bytes, 17400 blocks
+read back correctly, including the triple indirect part
+truncated to 100000
+space reused after unlink
+$ shutdown 0

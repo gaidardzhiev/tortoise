@@ -1,0 +1,51 @@
+.include "ext_inc.asm"
+CLI
+LOAD32 R0, EVT
+MTCR CR1, R0
+setvec 32, h_t
+LOAD32 R0, 1
+MTCR CR0, R0
+LOAD32 R6, PIC
+LOAD32 R0, 1
+STW [R6 + 4], R0
+LOAD32 R6, TIMER
+LOAD32 R0, 10
+STW [R6 + 12], R0
+LOAD32 R0, 10
+STW [R6 + 4], R0
+LOAD32 R0, 1
+STW [R6 + 8], R0
+LOAD32 R5, 0
+LOAD32 R4, 0
+STI
+loop:
+ADD32 R4, 1
+CMP32 R5, 20
+BLO loop
+CLI
+LOAD32 R0, 0
+STW [R6 + 8], R0
+CMP32 R5, 20
+BNE fail
+CMP32 R4, 100
+BLO fail
+LDW R0, [R6]
+CMP32 R0, 200
+BLO fail
+putc 0x0051
+poweroff 0
+fail:
+putc 0x0046
+poweroff 1
+h_t:
+ADD32 R5, 1
+LOAD32 R1, PIC
+LDW R0, [R1 + 12]
+CMP32 R0, 0
+BNE fail
+LOAD32 R0, 1
+STW [R1 + 8], R0
+LDW R0, [R1 + 12]
+CMP32 R0, 0xFFFFFFFF
+BNE fail
+IRET

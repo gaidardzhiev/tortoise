@@ -1,0 +1,2 @@
+tests/os/motd.txt:/data.txt
+-d /sub

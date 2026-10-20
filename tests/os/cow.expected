@@ -1,0 +1,8 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/cowtest
+child sees 1
+parent sees 8
+40 children shared a 4MB heap
+heap[5] in parent is 5
+$ shutdown 0

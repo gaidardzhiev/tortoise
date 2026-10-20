@@ -1,0 +1,22 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/proctest
+ok   uname
+sysname TORTOISE, release 3.0, machine tortoise, nodename tortoise
+ok   version is a build date
+ok   sethostname
+ok   gethostname
+ok   sethostname too long
+ok   monotonic clock advanced 25 to 27 ticks
+ok   nanoseconds in steps of 10 ms
+ok   realtime clock agrees with time()
+ok   bad clock
+ok   a user loop earns user ticks
+ok   a loop of system calls earns system ticks
+ok   children's ticks counted after wait
+ticks of the two nice 0 spinners and the nice 10 spinner, in order of exit: many many few
+ok   nice returns the new value
+ok   nice is clamped at 19
+ok   root may lower nice
+proctest: all ok
+$ shutdown 0

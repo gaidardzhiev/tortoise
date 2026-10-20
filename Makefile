@@ -1,33 +1,56 @@
-CC:=$(shell command -v musl-gcc 2>/dev/null || command -v gcc 2>/dev/null || command -v tcc 2>/dev/null || command -v clang 2>/dev/null)
-CFLAGS=-Wall -Wextra -std=c11 -g -static
+export NOCACHE
+CC:=$(shell command -v gcc 2>/dev/null || command -v musl-gcc 2>/dev/null || command -v tcc 2>/dev/null || command -v clang 2>/dev/null)
+CFLAGS=-Wall -Wextra -std=c11 -g -O2 -static -D_DEFAULT_SOURCE
 INCLUDES=-Iinclude
-SRC=src/main.c src/cpu.c
+EMU_SRC=src/cpu.c src/dev.c src/dis.c src/dbg.c src/opts.c src/emu.c src/gdb.c
+SRC=src/main.c $(EMU_SRC)
 OBJ=$(SRC:.c=.o)
+EMU_OBJ=$(EMU_SRC:.c=.o)
+HDR=include/cpu.h include/dev.h include/dis.h include/opts.h
 TARGET=tortoise
-TEST_SRC=tests/test_cpu.c src/cpu.c
+TEST_SRC=tests/test_cpu.c $(EMU_SRC)
 TEST_BIN=test_cpu
+UNIT_TESTS=tests/test_p1 tests/test_p2 tests/test_p3 tests/test_p4 tests/test_p5 tests/test_p6 tests/test_p9
 ASM_SRC=assembler/assembler.c
 ASM_BIN=as
+NEW_ASM_TESTS=sysctl branch alu2 mem2 call2 ext pic wfi prot paging dma
 
 ifeq ($(strip $(CC)),)
 CC=cc
 endif
 
-all: $(TARGET) assembler test
+ifeq ($(SDL),1)
+CFLAGS=-Wall -Wextra -std=c11 -g -O2 -D_DEFAULT_SOURCE -DTORTOISE_SDL $(shell sdl2-config --cflags)
+EMU_SRC+=src/sdl.c
+LDLIBS=$(shell sdl2-config --libs)
+endif
+
+all: $(TARGET) assembler tlink tcc0 libc test
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $(TARGET)
+	$(CC) $(CFLAGS) $(OBJ) -o $(TARGET) $(LDLIBS)
 
-%.o: %.c
+%.o: %.c $(HDR)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-test: $(TEST_SRC)
-	$(CC) $(CFLAGS) -Iinclude -o $(TEST_BIN) $(TEST_SRC)
+test: $(TEST_BIN) $(UNIT_TESTS)
 
-run_test: test
-	./$(TEST_BIN)
+$(TEST_BIN): $(TEST_SRC) $(HDR)
+	$(CC) $(CFLAGS) -Iinclude -o $(TEST_BIN) $(TEST_SRC) $(LDLIBS)
 
-assembler: $(ASM_SRC)
+tests/test_%: tests/test_%.c $(EMU_OBJ) $(HDR)
+	$(CC) $(CFLAGS) -Iinclude -o $@ $< $(EMU_OBJ) $(LDLIBS)
+
+run_test: test $(TARGET) assembler tlink
+	./$(TEST_BIN) > /dev/null
+	for t in $(UNIT_TESTS); do ./$$t || exit 1; done
+
+tlink: tools/tlink.c
+	$(CC) $(CFLAGS) -o tlink tools/tlink.c
+
+assembler: $(ASM_BIN)
+
+$(ASM_BIN): $(ASM_SRC)
 	$(CC) $(CFLAGS) -o $(ASM_BIN) $(ASM_SRC)
 
 run_shift_test: $(TARGET) assembler
@@ -118,7 +141,210 @@ run_asm_test: $(TARGET) assembler
 	./$(ASM_BIN) assembler/multitask.asm assembler/multitask.bin
 	./$(TARGET) assembler/multitask.bin
 
-clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_BIN) $(ASM_BIN) assembler/*.bin
+run_sysctl_test: $(TARGET) assembler
+	sh tests/runasm.sh sysctl Y
 
-.PHONY: all clean test assembler run_test run_asm_test run_shift_test run_mul_div_test run_labels_test run_interrupt_test run_io_test run_reg32_test run_indirect_test run_directives_test run_privilege_test run_peripherals_test run_multitask_test run_debugger_test
+run_branch_test: $(TARGET) assembler
+	sh tests/runasm.sh branch B
+
+run_alu2_test: $(TARGET) assembler
+	sh tests/runasm.sh alu2 A
+
+run_mem2_test: $(TARGET) assembler
+	sh tests/runasm.sh mem2 W
+
+run_call2_test: $(TARGET) assembler
+	sh tests/runasm.sh call2 C
+
+run_ext_test: $(TARGET) assembler
+	sh tests/runasm.sh ext E
+
+run_pic_test: $(TARGET) assembler
+	sh tests/runasm.sh pic Q
+
+run_wfi_test: $(TARGET) assembler
+	sh tests/runasm.sh wfi Z
+
+run_prot_test: $(TARGET) assembler
+	sh tests/runasm.sh prot G
+
+run_paging_test: $(TARGET) assembler
+	sh tests/runasm.sh paging H
+
+rom: rom/rom.bin
+
+rom/rom.bin: rom/rom.asm $(ASM_BIN)
+	./$(ASM_BIN) rom/rom.asm rom/rom.bin
+
+run_rom_test: $(TARGET) rom
+	sh tests/rom_test.sh
+
+run_link_test: $(TARGET) assembler tlink
+	sh tests/link_test.sh
+
+tests/gdb_client: tests/gdb_client.c
+	$(CC) $(CFLAGS) -o tests/gdb_client tests/gdb_client.c
+
+run_gdb_test: $(TARGET) assembler tests/gdb_client
+	sh tests/gdb_test.sh
+
+run_c_test: $(TARGET) tcc0 libc
+	sh tests/c_test.sh
+
+run_cc_errors: tcc0 libc
+	sh tests/cc_errors.sh
+
+run_dma_test: $(TARGET) assembler
+	sh tests/runasm.sh dma F
+
+run_uart_test: $(TARGET) assembler
+	./$(ASM_BIN) assembler/uart_test.asm assembler/uart_test.bin > /dev/null
+	./$(TARGET) $(NOCACHE) -i tests/uart_input.txt assembler/uart_test.bin > tests/uart_out.tmp
+	printf "Hello, TORTOISE!\nU" | cmp - tests/uart_out.tmp
+	rm -f tests/uart_out.tmp
+	@echo "uart: U ok"
+
+run_new_asm_test: $(TARGET) assembler
+	for t in $(NEW_ASM_TESTS); do $(MAKE) -s run_$${t}_test || exit 1; done
+
+run_legacy_check: $(TARGET) assembler
+	sh tests/check_legacy.sh
+
+run_exit_test: $(TARGET) assembler
+	sh tests/exit_codes.sh
+
+check: run_test run_legacy_check run_exit_test run_new_asm_test run_uart_test run_rom_test run_link_test run_c_test run_cc_errors run_tdisk_test run_tdisk2_test run_os_test run_os_tests run_gdb_test run_selfhost_test
+	@echo ALL TESTS PASSED
+
+clean:
+	rm -rf lib/bare lib/os os/tools
+	rm -f $(OS_TESTBINS) tests/os/*.tmp* disk.img selfhost.img tdisk os/boot/boot.bin os/kernel/*.o os/kernel/kernel.tex $(OS_BINS)
+	rm -f $(OBJ) $(TARGET) tlink tcc0 tests/gdb_client $(TEST_BIN) $(UNIT_TESTS) $(ASM_BIN) assembler/*.bin tests/*.tmp
+
+.PHONY: all clean test assembler rom run_test run_asm_test run_shift_test run_mul_div_test run_labels_test run_interrupt_test run_io_test run_reg32_test run_indirect_test run_directives_test run_privilege_test run_peripherals_test run_multitask_test run_debugger_test run_sysctl_test run_branch_test run_alu2_test run_mem2_test run_call2_test run_ext_test run_pic_test run_wfi_test run_prot_test run_paging_test rom run_rom_test run_link_test run_c_test run_cc_errors run_dma_test run_uart_test run_new_asm_test run_legacy_check run_exit_test check
+
+CC0_SRC=cc/main.c cc/pp.c cc/parse.c cc/gen.c
+LIB_SHARED=string ctype stdlib stdio
+LIB_BARE=$(addprefix lib/bare/,crt0_bare.o sys_bare.o memops.o $(addsuffix .o,$(LIB_SHARED)))
+LIB_OS=$(addprefix lib/os/,crt0.o sys.o memops.o $(addsuffix .o,$(LIB_SHARED)))
+LIB_HDR=$(wildcard lib/include/*.h)
+
+tcc0: $(CC0_SRC) cc/cc.h
+	$(CC) $(CFLAGS) -o tcc0 $(CC0_SRC)
+
+lib/bare/%.o: lib/%.c tcc0 $(ASM_BIN) $(LIB_HDR)
+	@mkdir -p lib/bare
+	./tcc0 -bare -c $< -o $@
+
+lib/bare/%.o: lib/%.s $(ASM_BIN)
+	@mkdir -p lib/bare
+	./$(ASM_BIN) -c $< -o $@ > /dev/null
+
+lib/os/%.o: lib/%.c tcc0 $(ASM_BIN) $(LIB_HDR)
+	@mkdir -p lib/os
+	./tcc0 -c $< -o $@
+
+lib/os/%.o: lib/%.s $(ASM_BIN)
+	@mkdir -p lib/os
+	./$(ASM_BIN) -c $< -o $@ > /dev/null
+
+libc: $(LIB_BARE) $(LIB_OS)
+
+.PHONY: libc
+
+KERNEL_C=klib kmem mm tfs vfs ramfs devfs procfs tty file stubs signal proc trap main
+KERNEL_OBJ=os/kernel/entry.o os/kernel/memops.o $(addprefix os/kernel/,$(addsuffix .o,$(KERNEL_C)))
+OS_PROGS=init sh echo cat ls mkdir rm wc hello ps kill sleep shutdown crash mount umount getty
+ETC_FILES=os/etc/inittab:/etc/inittab os/etc/rc:/etc/rc os/etc/autologin:/etc/autologin
+OS_BINS=$(addprefix os/bin/,$(OS_PROGS))
+
+tdisk: tools/tdisk.c
+	$(CC) $(CFLAGS) -o tdisk tools/tdisk.c
+
+os/boot/boot.bin: os/boot/boot.asm $(ASM_BIN)
+	./$(ASM_BIN) os/boot/boot.asm os/boot/boot.bin > /dev/null
+
+BUILD_DATE:=$(shell date +%Y-%m-%d)
+
+os/kernel/proc.o: os/kernel/proc.c os/kernel/kernel.h tcc0 $(ASM_BIN)
+	./tcc0 -c -DBUILD_DATE='"$(BUILD_DATE)"' $< -o $@
+
+os/kernel/%.o: os/kernel/%.c os/kernel/kernel.h tcc0 $(ASM_BIN)
+	./tcc0 -c $< -o $@
+
+os/kernel/entry.o: os/kernel/entry.s $(ASM_BIN)
+	./$(ASM_BIN) -c $< -o $@ > /dev/null
+
+os/kernel/memops.o: os/kernel/memops.s $(ASM_BIN)
+	./$(ASM_BIN) -c $< -o $@ > /dev/null
+
+os/kernel/kernel.tex: $(KERNEL_OBJ) tlink
+	./tlink -T 0x20000 -e _start -o $@ $(KERNEL_OBJ)
+
+os/bin/%: os/bin/%.c tcc0 libc tlink
+	./tcc0 $< -o $@
+
+disk.img: tdisk os/boot/boot.bin os/kernel/kernel.tex $(OS_BINS) $(wildcard os/etc/*)
+	./tdisk -o disk.img -b os/boot/boot.bin -k os/kernel/kernel.tex $(foreach p,$(OS_PROGS),os/bin/$(p):/bin/$(p)) $(ETC_FILES) tests/os/motd.txt:/etc/motd tests/os/big.txt:/etc/big.txt
+
+os: rom disk.img
+
+run_os: os $(TARGET)
+	./$(TARGET) -m 16 -r rom/rom.bin -D disk.img
+
+run_os_test: os $(TARGET)
+	sh tests/os_test.sh
+
+run_tdisk_test: tdisk os
+	sh tests/tdisk_test.sh
+
+run_tdisk2_test: tdisk
+	sh tests/tdisk2_test.sh
+
+clean_os:
+	rm -f $(OS_TESTBINS) tests/os/*.tmp* disk.img selfhost.img tdisk os/boot/boot.bin os/kernel/*.o os/kernel/kernel.tex $(OS_BINS) tests/os/*.tmp*
+
+.PHONY: os run_os run_os_test run_tdisk_test clean_os
+
+check_nocache:
+	$(MAKE) NOCACHE=-n run_legacy_check run_exit_test run_new_asm_test run_uart_test run_rom_test run_link_test run_c_test run_os_test run_os_tests run_gdb_test run_selfhost_test
+	@echo ALL TESTS PASSED WITHOUT DECODE CACHE
+
+.PHONY: check_nocache
+
+SELF_TOOLS=os/tools/as os/tools/tlink os/tools/tcc0
+LIB_INC_FILES=$(notdir $(wildcard lib/include/*.h))
+
+os/tools/as: assembler/assembler.c tcc0 libc
+	@mkdir -p os/tools
+	./tcc0 assembler/assembler.c -o $@
+
+os/tools/tlink: tools/tlink.c tcc0 libc
+	@mkdir -p os/tools
+	./tcc0 tools/tlink.c -o $@
+
+os/tools/tcc0: $(CC0_SRC) cc/cc.h tcc0 libc
+	@mkdir -p os/tools
+	./tcc0 $(CC0_SRC) -o $@
+
+selfhost.img: tdisk os/boot/boot.bin os/kernel/kernel.tex $(OS_BINS) $(SELF_TOOLS) tests/selfhost/hello.c $(wildcard os/etc/*)
+	./tdisk -o selfhost.img -b os/boot/boot.bin -k os/kernel/kernel.tex $(foreach p,$(OS_PROGS),os/bin/$(p):/bin/$(p)) $(ETC_FILES) $(foreach t,$(SELF_TOOLS),$(t):/bin/$(notdir $(t))) $(foreach h,$(LIB_INC_FILES),lib/include/$(h):/lib/include/$(h)) $(foreach h,$(notdir $(wildcard lib/include/sys/*.h)),lib/include/sys/$(h):/lib/include/sys/$(h)) $(foreach o,$(LIB_OS),$(o):/$(o)) tests/selfhost/hello.c:/src/hello.c
+
+run_selfhost_test: selfhost.img $(TARGET) rom
+	sh tests/selfhost_test.sh
+
+.PHONY: run_selfhost_test
+
+OS_TESTPROGS=$(basename $(notdir $(wildcard os/test/*.c)))
+OS_TESTBINS=$(addprefix os/test/,$(OS_TESTPROGS))
+
+os/test/%: os/test/%.c tcc0 libc tlink
+	./tcc0 $< -o $@
+
+tests/os/base.files.tmp: Makefile $(OS_BINS) $(OS_TESTBINS) $(wildcard os/etc/*)
+	echo $(foreach p,$(OS_PROGS),os/bin/$(p):/bin/$(p)) $(foreach p,$(OS_TESTPROGS),os/test/$(p):/test/$(p)) $(ETC_FILES) -d /mnt tests/os/motd.txt:/etc/motd > $@
+
+run_os_tests: os tests/os/base.files.tmp $(TARGET)
+	sh tests/os_tests.sh
+
+.PHONY: run_os_tests

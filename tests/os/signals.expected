@@ -1,0 +1,53 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/sigtest
+ok   caught signal runs the handler once
+ok   handler argument is the signal
+ok   ignored signal does nothing
+ok   ignored signal is not pending
+ok   blocked signal is not delivered
+ok   blocked signal is pending
+ok   unblocking delivers it
+ok   nothing pending afterwards
+ok   SIGKILL and SIGSTOP cannot be blocked
+ok   SIGKILL cannot be caught
+ok   sa_mask defers a signal until the handler returns
+ok   blocked read interrupted: EINTR
+ok   alarm handler ran
+ok   SA_RESTART restarts the read
+ok   alarm handler ran again
+ok   alarm returns the remaining ticks
+ok   no previous alarm gives 0
+ok   waitpid returns the child
+ok   exit status 3
+ok   SIGCHLD delivered
+ok   WNOHANG with a running child
+ok   WUNTRACED reports the stop
+ok   WIFSTOPPED, WSTOPSIG
+ok   stop reported only once
+ok   WCONTINUED reports the continue
+ok   WIFCONTINUED
+ok   killed by SIGTERM
+ok   SIGTSTP stops a process
+ok   continues and exits
+ok   getpgid
+ok   kill with signal 0 checks a group
+ok   kill of a missing group
+ok   waitpid of another group skips our child
+ok   waitpid 0 takes our own group
+ok   group member killed by SIGUSR1
+ok   second member too
+ok   no children left: ECHILD
+ok   orphaned stopped group gets SIGHUP and SIGCONT
+ok   setsid fails for a group leader
+ok   SIGSEGV handler maps the page and the store is retried
+child caught signal 8
+ok   divide by zero gives SIGFPE
+child caught signal 4
+ok   invalid opcode gives SIGILL
+child caught signal 5
+ok   BRK gives SIGTRAP
+ok   write to a pipe without readers: SIGPIPE
+ok   with SIGPIPE ignored: EPIPE
+sigtest: all ok
+$ shutdown 0

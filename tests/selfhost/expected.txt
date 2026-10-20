@@ -1,0 +1,15 @@
+TORTOISE ROM
+TORTOISE OS booting, 16384 KB RAM
+$ mkdir /home
+$ cd /home
+$ tcc0 /src/hello.c -o hello
+$ ls -l
+-  31831 hello
+$ ./hello a b
+hello, TORTOISE 9
+hello, TORTOISE 16
+argc=3 len=8
+$ tcc0 -S /src/hello.c -o hello.s
+$ wc hello.s
+108 281 1279 hello.s
+$ shutdown 0

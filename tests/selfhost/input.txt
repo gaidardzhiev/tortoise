@@ -1,0 +1,8 @@
+mkdir /home
+cd /home
+tcc0 /src/hello.c -o hello
+ls -l
+./hello a b
+tcc0 -S /src/hello.c -o hello.s
+wc hello.s
+shutdown 0

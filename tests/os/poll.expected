@@ -1,0 +1,10 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/polltest
+poll without waiting: 0
+first line
+poll with a timeout: 1 revents 1
+read: first line
+second line
+poll forever: 1, read: second line
+$ shutdown 0

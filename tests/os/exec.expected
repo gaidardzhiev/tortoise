@@ -1,0 +1,56 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/exectest
+execve with an environment, fd 6 close on exec:
+argv[0] = showargs
+argv[1] = one
+argv[2] = two words
+env HOME=/root
+env PATH=/bin:/test
+env EMPTY=
+fd 5 open
+fd 6 closed
+exit 0
+exec (syscall 8) passes no environment:
+argv[0] = showargs
+argv[1] = one
+argv[2] = two words
+fd 5 open
+fd 6 closed
+script with an interpreter argument:
+argv[0] = /test/showargs
+argv[1] = -x
+argv[2] = /test/script1
+argv[3] = one
+argv[4] = two words
+env HOME=/root
+env PATH=/bin:/test
+env EMPTY=
+fd 5 open
+fd 6 closed
+exit 0
+script without an argument, empty argv:
+argv[0] = /test/showargs
+argv[1] = /test/script2
+fd 5 open
+fd 6 closed
+exit 0
+relative script path:
+argv[0] = /test/showargs
+argv[1] = script2
+argv[2] = one
+argv[3] = two words
+fd 5 open
+fd 6 closed
+exit 0
+missing interpreter:
+execve /test/script3 failed, errno 2
+exit 127
+not executable:
+execve /etc/motd failed, errno 13
+exit 127
+ignored signals stay ignored across exec:
+SIGTERM ignored
+exit 3
+getenv after setenv: yes
+$ shutdown 0

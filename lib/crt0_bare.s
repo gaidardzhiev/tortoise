@@ -1,0 +1,24 @@
+.text
+.globl _start
+_start:
+LOAD32 R1, 0xF0007000
+LDW R0, [R1 + 4]
+SETSP R0
+LOAD32 R1, _edata
+LOAD32 R2, _end
+LOAD32 R3, 0
+.zero:
+CMP32 R1, R2
+BHS .done
+STB [R1], R3
+ADD32 R1, 1
+JMPREL .zero
+.done:
+LOAD32 R0, 0
+PUSH32 R0
+PUSH32 R0
+CALL32 main
+ADDSP 8
+PUSH32 R0
+CALL32 exit
+HALT

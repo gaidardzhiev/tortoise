@@ -1,0 +1,37 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ ls /dev
+console
+tty
+null
+zero
+random
+urandom
+kmsg
+disk0
+disk1
+fb0
+kbd
+$ mount /dev/disk1 /mnt tfs
+$ ls -l /mnt
+-     21 data.txt
+d     64 sub
+$ cat /mnt/data.txt
+Welcome to TORTOISE.
+$ echo appended >> /mnt/data.txt
+$ umount /mnt
+$ ls /mnt
+$ mount /dev/disk1 /mnt tfs
+$ cat /mnt/data.txt
+Welcome to TORTOISE.
+appended
+$ cd /mnt/sub
+$ umount /mnt
+umount: cannot unmount /mnt: error 16
+$ cd /
+$ umount /mnt
+$ mount /dev/disk1 /nowhere tfs
+mount: cannot mount /dev/disk1 on /nowhere: error 2
+$ mount /dev/null /mnt tfs
+mount: cannot mount /dev/null on /mnt: error 19
+$ shutdown 0

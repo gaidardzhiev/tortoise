@@ -1,0 +1,138 @@
+.include "ext_inc.asm"
+CLI
+LOAD32 R0, EVT
+MTCR CR1, R0
+LOAD32 R0, 0x8000
+MTCR CR4, R0
+setvec 0, h_div
+setvec 3, h_brk
+setvec 4, h_ud
+setvec 5, h_bus
+setvec 13, h_gp
+setvec 32, h_timer
+setvec 48, h_sys
+setvec 50, h_int50
+LOAD32 R0, 1
+MTCR CR0, R0
+LOAD32 R5, 0
+LOAD32 R2, 0
+LOAD32 R1, 100
+IDIV R1, R2
+CMP32 R1, 20
+BNE fail
+BRK
+LOAD32 R1, 0x3000
+LOAD32 R3, 0x1234ABCD
+STW [R1], R3
+LOAD32 R3, 0
+LOAD32 R1, 0x80000000
+LDW R3, [R1]
+CMP32 R3, 0x1234ABCD
+BNE fail
+.byte 0x7B
+LOAD32 R0, h_df
+LOAD32 R7, 0x100000 - 56
+STW [R7 + 24], R0
+MTCR CR1, R7
+SYSCALL
+LOAD32 R6, PIC
+LOAD32 R0, 1
+STW [R6 + 4], R0
+LOAD32 R6, TIMER
+LOAD32 R0, 1
+STW [R6 + 12], R0
+LOAD32 R0, 100
+STW [R6 + 4], R0
+LOAD32 R0, 1
+STW [R6 + 8], R0
+LOAD32 R1, 100000
+STI
+twait:
+TESTI R5, 64
+BNE tdone
+SUB32 R1, 1
+BNE twait
+JMP32 fail
+tdone:
+CLI
+LOAD32 R0, 0
+STW [R6 + 8], R0
+LOAD32 R0, 0x9000
+PUSH32 R0
+LOAD32 R0, 0x20
+PUSH32 R0
+LOAD32 R0, ucode
+PUSH32 R0
+IRET
+ucode:
+CLI
+INT 50
+SYSCALL
+JMP32 fail
+cont:
+CMP32 R5, 511
+BNE fail
+putc 0x0045
+poweroff 0
+fail:
+putc 0x0046
+poweroff 1
+h_div:
+OR32 R5, 1
+LOAD32 R2, 5
+IRET
+h_brk:
+OR32 R5, 2
+IRET
+h_ud:
+OR32 R5, 4
+LDW R4, [SP]
+ADD32 R4, 1
+STW [SP], R4
+IRET
+h_bus:
+OR32 R5, 8
+MFCR R4, CR2
+CMP32 R4, 0x80000000
+BNE fail
+LOAD32 R1, 0x3000
+IRET
+h_df:
+OR32 R5, 16
+MFCR R4, CR7
+CMP32 R4, 6
+BNE fail
+LOAD32 R0, EVT
+MTCR CR1, R0
+LDW R4, [SP]
+ADD32 R4, 1
+STW [SP], R4
+IRET
+h_gp:
+OR32 R5, 32
+MFCR R4, CR7
+CMP32 R4, 13
+BNE fail
+LDW R4, [SP]
+ADD32 R4, 1
+STW [SP], R4
+IRET
+h_timer:
+OR32 R5, 64
+LOAD32 R4, PIC
+LOAD32 R0, 1
+STW [R4 + 8], R0
+IRET
+h_sys:
+OR32 R5, 128
+MFCR R4, CR7
+CMP32 R4, 48
+BNE fail
+LDW R4, [SP + 4]
+TESTI R4, 0x20
+BEQ fail
+ADDSP 12
+JMP32 cont
+h_int50:
+OR32 R5, 256
+IRET

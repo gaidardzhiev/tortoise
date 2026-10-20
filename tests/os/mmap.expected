@@ -1,0 +1,14 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/mmaptest
+shared at 0x5fffe000 private at 0x5fffd000
+shared after child write: 42 43
+private after child write: 1
+fixed mapping at 0x50000000 reads 0
+bad mmap: refused
+pid 6: fault 14 at 0x004004AC
+write to read only mapping: status 11
+reading unmapped page
+pid 7: fault 14 at 0x004005A4
+access after munmap: status 11
+$ shutdown 0

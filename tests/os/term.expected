@@ -1,0 +1,54 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/termtest
+ok   canonical, echo and signals are on
+ok   ONLCR is off so output is unchanged
+ok   TIOCGWINSZ
+ok   the shell's group is in the foreground
+hello
+
+ok   a line
+abx c
+
+ok   DEL erases
+de f
+
+ok   ^H erases
+junk    ok
+
+ok   ^U kills the line
+cr
+
+ok   CR becomes NL
+long
+
+ok   a short read takes part of a line
+
+ok   the rest follows
+
+ok   ^D at the start of a line is end of file
+part
+ok   ^D after text ends the read without a newline
+
+ok   without ECHO nothing is shown
+abcok   ^C sends SIGINT to the foreground group
+qok   ^\ sends SIGQUIT
+zzok   ^Z sends SIGTSTP and stops it
+after
+
+child read 6: after
+ok   after SIGCONT the read starts again
+ab
+
+ok   without ISIG ^C is a character
+ok   a background read gets SIGTTIN
+ok   with SIGTTIN ignored the read fails with EIO
+ok   raw, VMIN 1: one byte
+ok   raw, VMIN 3: three bytes
+ok   raw without ICRNL keeps CR
+ok   raw, VMIN 0 VTIME 0: what is there
+ok   raw, VMIN 2 VTIME 1: the byte after the gap
+ok   the gap was 100 ms
+ok   raw, VMIN 0 VTIME 2: nothing
+ok   after 200 ms
+termtest: all ok

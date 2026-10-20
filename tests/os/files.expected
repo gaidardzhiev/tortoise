@@ -1,0 +1,95 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/fstest
+ok   write a file
+ok   lseek end
+ok   lseek set
+ok   read after lseek
+ok   lseek cur
+ok   lseek before start fails with errno 22
+ok   fstat size
+ok   fstat is regular
+ok   dup2
+ok   dup2 shares offset
+ok   lseek on pipe fails with errno 29
+ok   lseek on console fails with errno 29
+ok   fstat pipe is fifo
+ok   F_GETFL shows O_NONBLOCK
+ok   non blocking read of empty pipe fails with errno 11
+ok   poll: only the write end ready
+ok   poll revents of write end
+ok   poll after write
+ok   poll revents read end
+ok   poll timeout on empty pipe
+ok   poll sees hangup
+ok   O_EXCL on existing file fails with errno 17
+ok   O_EXCL creates
+ok   O_DIRECTORY on a file fails with errno 20
+ok   O_CLOEXEC sets FD_CLOEXEC
+ok   F_SETFD clears it
+ok   F_DUPFD from 20
+ok   link
+ok   nlink after link
+ok   same inode
+ok   link a directory fails with errno 1
+ok   link across file systems fails with errno 18
+ok   unlink one name
+ok   nlink after unlink
+ok   symlink
+ok   readlink length
+ok   stat follows the link
+ok   lstat does not
+ok   read through link
+ok   readlink of a file fails with errno 22
+ok   symlink loop fails with errno 40
+ok   O_NOFOLLOW on a link fails with errno 40
+ok   path through a directory link
+ok   rmdir of a non empty directory fails with errno 39
+ok   rmdir of a file fails with errno 20
+ok   rmdir of a mount point fails with errno 16
+ok   rename in a directory
+ok   old name gone fails with errno 2
+ok   rename across directories
+ok   content after rename
+ok   rename over an existing file
+ok   replaced content
+ok   rename a directory
+ok   dotdot of moved directory
+ok   rename into own subtree fails with errno 22
+ok   rename across file systems fails with errno 18
+ok   getcwd
+ok   getcwd with a small buffer fails with errno 34
+ok   getcwd in a subdirectory
+ok   getcwd on a mounted file system
+ok   dotdot leaves the mount
+ok   truncate shorter
+ok   truncate longer
+ok   truncated file reads zeros
+ok   ftruncate
+ok   truncate a directory fails with errno 21
+ok   utime
+ok   times after utime
+ok   utime NULL
+ok   utime NULL sets now
+ok   unlink an open file
+ok   name is gone fails with errno 2
+ok   still readable through the descriptor
+ok   its link count is zero
+ok   mount ramfs
+ok   write on ramfs
+ok   ramfs device differs
+ok   umount while in use fails with errno 16
+ok   umount
+ok   file gone after umount fails with errno 2
+ok   mount unknown type fails with errno 19
+ok   mount on a file fails with errno 20
+ok   umount of a directory that is not mounted fails with errno 22
+ok   sync
+ok   /dev/null reads end of file
+ok   /dev/zero reads zeros
+ok   /dev/null is a character device
+ok   open a missing file fails with errno 2
+ok   path through a file fails with errno 20
+ok   name too long fails with errno 36
+fstest: all ok
+$ shutdown 0

@@ -1,0 +1,16 @@
+ls /dev
+mount /dev/disk1 /mnt tfs
+ls -l /mnt
+cat /mnt/data.txt
+echo appended >> /mnt/data.txt
+umount /mnt
+ls /mnt
+mount /dev/disk1 /mnt tfs
+cat /mnt/data.txt
+cd /mnt/sub
+umount /mnt
+cd /
+umount /mnt
+mount /dev/disk1 /nowhere tfs
+mount /dev/null /mnt tfs
+shutdown 0

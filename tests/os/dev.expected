@@ -1,0 +1,54 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ ls /dev
+console
+tty
+null
+zero
+random
+urandom
+kmsg
+disk0
+disk1
+fb0
+kbd
+$ /test/devtest
+ok   /dev/console is a character device 4,1 mode 666
+ok   /dev/tty is a character device 4,0 mode 666
+ok   /dev/null is a character device 1,3 mode 666
+ok   /dev/zero is a character device 1,5 mode 666
+ok   /dev/random is a character device 1,8 mode 666
+ok   /dev/urandom is a character device 1,9 mode 666
+ok   /dev/kmsg is a character device 1,11 mode 600
+ok   /dev/disk0 is a character device 8,0 mode 600
+ok   /dev/disk1 is a character device 8,1 mode 600
+ok   /dev/fb0 is a character device 29,0 mode 660
+ok   /dev/kbd is a character device 13,0 mode 660
+console says hello
+ok   write to /dev/console
+ok   open /dev/tty with a controlling terminal
+tty says hello
+ok   write to /dev/tty
+ok   /dev/tty is a terminal
+ok   isatty(0)
+ok   ttyname(0)
+ok   isatty of /dev/null
+ok   tcgetattr of /dev/null fails with ENOTTY
+ok   /dev/null takes writes
+ok   /dev/null reads end of file
+ok   /dev/zero gives 600 zero bytes
+ok   /dev/zero takes writes
+ok   /dev/random gives 512 bytes
+ok   about half of the bits are set
+ok   two reads differ
+ok   /dev/urandom gives 16 bytes
+ok   /dev/kmsg holds the boot message
+ok   seek to the file system on disk0
+ok   disk0 superblock has the TFS2 magic
+ok   disk0 size
+ok   disk1 without a second disk is empty
+ok   fb0 takes pixels
+ok   fb0 reads zeros without SDL
+ok   kbd has no characters without SDL
+devtest: all ok
+$ shutdown 0

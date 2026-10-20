@@ -1,0 +1,131 @@
+LOAD32 R1, 5
+LOAD32 R2, 7
+CMP32 R1, R2
+BEQ fail
+BNE t1
+JMP32 fail
+t1:
+BLT t2
+JMP32 fail
+t2:
+BGE fail
+BLE t3
+JMP32 fail
+t3:
+BGT fail
+BLO t4
+JMP32 fail
+t4:
+BHS fail
+BLS t5
+JMP32 fail
+t5:
+BHI fail
+BMI t6
+JMP32 fail
+t6:
+BPL fail
+BVS fail
+BVC t7
+JMP32 fail
+t7:
+LOAD32 R1, 0xFFFFFFFF
+LOAD32 R2, 1
+CMP32 R1, R2
+BLT t8
+JMP32 fail
+t8:
+BGE fail
+BHI t9
+JMP32 fail
+t9:
+BLO fail
+BLS fail
+BHS t10
+JMP32 fail
+t10:
+LOAD32 R1, 7
+LOAD32 R2, 7
+CMP32 R1, R2
+BEQ t11
+JMP32 fail
+t11:
+BNE fail
+BLT fail
+BGT fail
+BLO fail
+BHI fail
+BLE t12
+JMP32 fail
+t12:
+BGE t13
+JMP32 fail
+t13:
+BLS t14
+JMP32 fail
+t14:
+BHS t15
+JMP32 fail
+t15:
+BPL t16
+JMP32 fail
+t16:
+LOAD32 R1, 0x80000000
+LOAD32 R2, 1
+CMP32 R1, R2
+BVS t17
+JMP32 fail
+t17:
+BVC fail
+BPL t18
+JMP32 fail
+t18:
+BMI fail
+BLT t19
+JMP32 fail
+t19:
+BGE fail
+BHI t20
+JMP32 fail
+t20:
+LOAD32 R1, 0x7FFFFFFF
+LOAD32 R2, 0xFFFFFFFF
+CMP32 R1, R2
+BGT t21
+JMP32 fail
+t21:
+BLE fail
+BLO t22
+JMP32 fail
+t22:
+BHS fail
+BMI t23
+JMP32 fail
+t23:
+BVS t24
+JMP32 fail
+t24:
+LOAD32 R3, 0
+LOAD32 R4, 10
+loop:
+ADD32 R3, 1
+CMP32 R3, R4
+BLT loop
+CMP32 R3, 10
+BNE fail
+JMPREL done
+JMP32 fail
+done:
+LOAD R2, 0x0042
+OUT R2, 0xFF00
+LOAD32 R0, 0xF0007000
+LOAD32 R1, 0
+STW [R0], R1
+HALT
+fail:
+LOAD R2, 0x0046
+OUT R2, 0xFF00
+LOAD32 R0, 0xF0007000
+LOAD32 R1, 1
+STW [R0], R1
+HALT

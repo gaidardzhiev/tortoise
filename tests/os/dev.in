@@ -1,0 +1,3 @@
+ls /dev
+/test/devtest
+shutdown 0

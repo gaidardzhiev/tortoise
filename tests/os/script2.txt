@@ -1,0 +1,2 @@
+#!  /test/showargs   
+rest of the script

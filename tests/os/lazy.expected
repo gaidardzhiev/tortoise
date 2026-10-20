@@ -1,0 +1,8 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/lazytest
+sbrk of 64MB on a 32MB machine succeeded
+touched 16 pages, sum of fresh bytes 0
+break restored yes
+stack recursion of 600KB: 600 frames intact
+$ shutdown 0
