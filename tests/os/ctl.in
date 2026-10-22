@@ -1,0 +1,17 @@
+/test/ctltest
+sleep 100 &
+echo stop > /proc/$!/ctl
+ps | grep ' sleep$'
+echo start > /proc/$!/ctl
+ps | grep ' sleep$'
+echo kill > /proc/$!/ctl; wait
+rfork n
+bind '#c' /dev
+bind -a '#p' /proc
+ls /dev | head -4
+ls '#D'
+cat '#I/ipifc/0/ctl'
+ns | grep net
+cat /proc/self/args
+cat /proc/self/fdtab
+shutdown 0

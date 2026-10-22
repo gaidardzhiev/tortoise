@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 #define CHUNK 4096
@@ -7,57 +12,6 @@ static Pipe pipes[NPIPE];
 WaitQueue poll_wq;
 static unsigned pipe_ids[NPIPE];
 static unsigned next_pipe_id = 1;
-
-int pty_lookup(Vnode *dir, const char *name, Vnode **out) {
-	(void)dir;
-	(void)name;
-	(void)out;
-	return -ENOENT;
-}
-
-int pty_read(Vnode *v, char *buf, unsigned n, File *f) {
-	(void)v;
-	(void)buf;
-	(void)n;
-	(void)f;
-	return -EINVAL;
-}
-
-int pty_write(Vnode *v, const char *buf, unsigned n, File *f) {
-	(void)v;
-	(void)buf;
-	(void)n;
-	(void)f;
-	return -EINVAL;
-}
-
-int pty_readdir(Vnode *v, unsigned *off, Dirent *de, unsigned first) {
-	(void)v;
-	(void)off;
-	(void)de;
-	(void)first;
-	return 0;
-}
-
-int pty_getattr(Vnode *v, Stat2 *st) {
-	(void)v;
-	(void)st;
-	return -ENOENT;
-}
-
-int pty_ioctl(Vnode *v, unsigned req, unsigned arg, File *f) {
-	(void)v;
-	(void)req;
-	(void)arg;
-	(void)f;
-	return -EINVAL;
-}
-
-int pty_poll(Vnode *v, File *f) {
-	(void)v;
-	(void)f;
-	return POLLNVAL;
-}
 
 File *file_alloc(void) {
 	int i;
@@ -78,16 +32,33 @@ File *file_dup(File *f) {
 void file_close(File *f) {
 	if (--f->ref > 0) return;
 	if (f->type == FD_PIPE) {
-		Pipe *p = f->pipe;
+		Pipe *p = f->pipe, *q = f->pipe2 ? f->pipe2 : f->pipe;
 		if (f->readable) p->readers--;
-		if (f->writable) p->writers--;
-		wakeup(&p->rwq);
-		wakeup(&p->wwq);
-		wakeup(&poll_wq);
-		if (p->readers == 0 && p->writers == 0) p->used = 0;
+		if (f->writable) q->writers--;
+		pipe_check(p);
+		if (q != p) pipe_check(q);
+		f->pipe2 = NULL;
+	} else if (f->type == FD_INODE && f->pty) {
+		pty_close(f);
+		vput(f->vn);
+	} else if (f->type == FD_SOCKET) {
+		sock_close(f);
+		f->sock = NULL;
 	} else if (f->type == FD_INODE && f->vn) {
+		if (f->mopen) mnt_close(f);
+		if (f->sock) {
+			sock_close(f);
+			f->sock = NULL;
+		}
+		net9_close(f);
 		vput(f->vn);
 	}
+	kfree(f->snap);
+	f->snap = NULL;
+	f->snaplen = 0;
+	kfree(f->path);
+	f->path = NULL;
+	while (f->nun > 0) vput(f->un[--f->nun]);
 	f->type = FD_NONE;
 	f->vn = NULL;
 }
@@ -107,7 +78,7 @@ int fd_alloc(File *f) {
 	return fd_alloc_from(f, 0);
 }
 
-static File *getf(int fd) {
+File *getf(int fd) {
 	if (fd < 0 || fd >= NOFILE) return NULL;
 	return curproc->files[fd];
 }
@@ -132,7 +103,29 @@ File *open_vnode(Vnode *v, int flags) {
 	return f;
 }
 
-int sys_open(unsigned upath, int flags) {
+void file_set_path(File *f, const char *path) {
+	char *b = kmalloc(MAXPATH);
+	Walk *w = kmalloc(sizeof(Walk));
+	if (!b || !w) {
+		kfree(b);
+		kfree(w);
+		return;
+	}
+	if (path[0] == '#' && path[1] == '|') {
+		strncpy(b, path, MAXPATH - 1);
+	} else if (vfs_walk(path, WFOLLOW, w) == 0) {
+		strncpy(b, w->path, MAXPATH);
+		if (w->v == f->vn && f->vn->type == VT_DIR) f->nun = ns_union(w->key, f->un, 8);
+		walk_done(w);
+	} else {
+		strncpy(b, path, MAXPATH - 1);
+	}
+	kfree(w);
+	b[MAXPATH - 1] = 0;
+	f->path = b;
+}
+
+int sys_open(unsigned upath, int flags, unsigned mode) {
 	char path[256], name[28];
 	Vnode *v = NULL, *dir;
 	Stat2 st;
@@ -159,7 +152,7 @@ int sys_open(unsigned upath, int flags) {
 				return -EACCES;
 			}
 			r = vfs_access(dir, 2);
-			if (r == 0) r = dir->fs->ops->create(dir, name, 0666 & ~curproc->umask, &v);
+			if (r == 0) r = dir->fs->ops->create(dir, name, ((mode & 0x80000000u) ? mode & 07777 : 0666) & ~curproc->umask, &v);
 			vput(dir);
 			if (r) return r;
 		} else {
@@ -199,6 +192,31 @@ int sys_open(unsigned upath, int flags) {
 	if (!f) {
 		vput(v);
 		return -EMFILE;
+	}
+	if (v->fs->ops == &devfs_ops) {
+		r = pty_open(v, f);
+		if (r) {
+			file_close(f);
+			return r;
+		}
+	}
+	file_set_path(f, path);
+	if (dev9_is_pipe(v) && (r = pipe9_open(v, f)) != 0) {
+		file_close(f);
+		return r;
+	}
+	if ((r = mnt_open(v, f, flags)) != 0) {
+		file_close(f);
+		return r;
+	}
+	if ((r = net9_open(v, f)) != 0) {
+		file_close(f);
+		return r;
+	}
+	if (srv_posted(v)) {
+		File *pf = file_dup(srv_posted(v));
+		file_close(f);
+		f = pf;
 	}
 	fd = fd_alloc(f);
 	if (fd < 0) {
@@ -285,6 +303,23 @@ int sys_write(int fd, unsigned ubuf, unsigned n) {
 	return r;
 }
 
+int do_write(File *f, const char *kbuf, unsigned k) {
+	int r;
+	if (f->type == FD_PIPE) r = pipe_write(f->pipe2 ? f->pipe2 : f->pipe, kbuf, k, f->nonblock);
+	else if (f->type == FD_SOCKET) r = sock_write(f, (char *)kbuf, k);
+	else if (f->type == FD_INODE) {
+		if (!f->vn->fs->ops->write) return -EINVAL;
+		if (f->append && f->vn->type == VT_REG) {
+			Stat2 st;
+			vfs_getattr(f->vn, &st);
+			f->off = st.size;
+		}
+		r = f->vn->fs->ops->write(f->vn, kbuf, f->off, k, f);
+		if (r > 0 && seekable(f)) f->off += (unsigned)r;
+	} else return -EBADF;
+	return r;
+}
+
 int write_loop(File *f, unsigned ubuf, unsigned n, char *kbuf) {
 	unsigned done = 0;
 	while (done < n) {
@@ -292,18 +327,7 @@ int write_loop(File *f, unsigned ubuf, unsigned n, char *kbuf) {
 		int r;
 		if (k > CHUNK) k = CHUNK;
 		if (copyin(kbuf, ubuf + done, k)) return -EFAULT;
-		if (f->type == FD_PIPE) r = pipe_write(f->pipe, kbuf, k, f->nonblock);
-		else if (f->type == FD_SOCKET) r = sock_write(f, kbuf, k);
-		else if (f->type == FD_INODE) {
-			if (!f->vn->fs->ops->write) return -EINVAL;
-			if (f->append && f->vn->type == VT_REG) {
-				Stat2 st;
-				vfs_getattr(f->vn, &st);
-				f->off = st.size;
-			}
-			r = f->vn->fs->ops->write(f->vn, kbuf, f->off, k, f);
-			if (r > 0 && seekable(f)) f->off += (unsigned)r;
-		} else return -EBADF;
+		r = do_write(f, kbuf, k);
 		if (r == -EPIPE) send_sigpipe();
 		if (r < 0) return done ? (int)done : r;
 		done += (unsigned)r;
@@ -383,6 +407,25 @@ unsigned pipe_id(Pipe *p) {
 	return pipe_ids[p - pipes];
 }
 
+Pipe *pipe_alloc(void) {
+	int i;
+	for (i = 0; i < NPIPE; i++)
+		if (!pipes[i].used) {
+			memset(&pipes[i], 0, sizeof(Pipe));
+			pipes[i].used = 1;
+			pipe_ids[i] = next_pipe_id++;
+			return &pipes[i];
+		}
+	return NULL;
+}
+
+void pipe_check(Pipe *p) {
+	wakeup(&p->rwq);
+	wakeup(&p->wwq);
+	wakeup(&poll_wq);
+	if (p->readers <= 0 && p->writers <= 0) p->used = 0;
+}
+
 int sys_readdir(int fd, unsigned udp) {
 	File *f = getf(fd);
 	Dirent de;
@@ -390,6 +433,29 @@ int sys_readdir(int fd, unsigned udp) {
 	if (!f || f->type != FD_INODE) return -EBADF;
 	if (f->vn->type != VT_DIR || !f->vn->fs->ops->readdir) return -ENOTDIR;
 	memset(&de, 0, sizeof(de));
+	if (f->nun > 0) {
+		for (;;) {
+			unsigned idx = f->off >> 24, sub = f->off & 0xFFFFFF;
+			Vnode *m, *t;
+			int j, dup = 0;
+			if (idx >= (unsigned)f->nun) return 0;
+			m = f->un[idx];
+			if (m->type != VT_DIR || !m->fs->ops->readdir || m->fs->ops->readdir(m, &sub, &de) <= 0) {
+				f->off = (idx + 1) << 24;
+				continue;
+			}
+			f->off = (idx << 24) | (sub & 0xFFFFFF);
+			de.name[27] = 0;
+			if (idx > 0 && (!strcmp(de.name, ".") || !strcmp(de.name, ".."))) continue;
+			for (j = 0; j < (int)idx && !dup; j++)
+				if (f->un[j]->type == VT_DIR && f->un[j]->fs->ops->lookup(f->un[j], de.name, &t) == 0) {
+					vput(t);
+					dup = 1;
+				}
+			if (!dup) break;
+		}
+		return copyout(udp, &de, sizeof(de)) ? -EFAULT : 1;
+	}
 	r = f->vn->fs->ops->readdir(f->vn, &f->off, &de);
 	if (r <= 0) return r;
 	de.name[27] = 0;
@@ -413,7 +479,7 @@ static int sticky_ok(Vnode *dir, Vnode *v) {
 	return -EPERM;
 }
 
-int sys_mkdir(unsigned upath) {
+int sys_mkdir(unsigned upath, unsigned mode) {
 	Vnode *dir, *v;
 	char name[28];
 	int r = with_parent(upath, &dir, name);
@@ -424,7 +490,7 @@ int sys_mkdir(unsigned upath) {
 		return -EEXIST;
 	}
 	r = vfs_access(dir, 3);
-	if (r == 0) r = dir->fs->ops->mkdir ? dir->fs->ops->mkdir(dir, name, 0777 & ~curproc->umask) : -EPERM;
+	if (r == 0) r = dir->fs->ops->mkdir ? dir->fs->ops->mkdir(dir, name, ((mode & 0x80000000u) ? mode & 07777 : 0777) & ~curproc->umask) : -EPERM;
 	vput(dir);
 	return r;
 }
@@ -434,18 +500,29 @@ int sys_chdir(unsigned upath) {
 	Vnode *v;
 	int r = copy_path(path, upath);
 	if (r) return r;
-	r = vfs_resolve(path, curproc->cwd, 1, &v);
-	if (r) return r;
-	if (v->type != VT_DIR) {
-		vput(v);
-		return -ENOTDIR;
+	{
+		Walk *w = kmalloc(sizeof(Walk));
+		if (!w) return -ENOMEM;
+		r = vfs_walk(path, WFOLLOW, w);
+		if (r) {
+			kfree(w);
+			return r;
+		}
+		v = w->v;
+		if (v->type != VT_DIR) r = -ENOTDIR;
+		else r = vfs_access(v, 1);
+		if (r) {
+			walk_done(w);
+			kfree(w);
+			return r;
+		}
+		vput(curproc->cwd);
+		if (curproc->cwdkey) vput(curproc->cwdkey);
+		curproc->cwd = v;
+		curproc->cwdkey = w->key;
+		strncpy(curproc->cwdpath, w->path, MAXPATH);
+		kfree(w);
 	}
-	if ((r = vfs_access(v, 1)) != 0) {
-		vput(v);
-		return r;
-	}
-	vput(curproc->cwd);
-	curproc->cwd = v;
 	return 0;
 }
 
@@ -463,7 +540,7 @@ static int remove_common(unsigned upath, int mode) {
 		vput(dir);
 		return r;
 	}
-	if (v->mounted || (v->fs != dir->fs)) {
+	if (v->mounted || ns_is_mountpoint(v) || (v->fs != dir->fs)) {
 		vput(v);
 		vput(dir);
 		return -EBUSY;
@@ -599,11 +676,11 @@ int sys_rename(unsigned ua, unsigned ub) {
 	else if (!strcmp(on, ".") || !strcmp(on, "..") || !strcmp(nn, ".") || !strcmp(nn, "..")) r = -EINVAL;
 	else if ((r = od->fs->ops->lookup(od, on, &src)) == 0) {
 		Vnode *t;
-		if (src->mounted) r = -EBUSY;
+		if (src->mounted || ns_is_mountpoint(src)) r = -EBUSY;
 		else if (src->type == VT_DIR && is_ancestor(src, nd)) r = -EINVAL;
 		else if ((r = vfs_access(od, 3)) == 0 && (r = vfs_access(nd, 3)) == 0 && (r = sticky_ok(od, src)) == 0) {
 			if (nd->fs->ops->lookup(nd, nn, &t) == 0) {
-				if (t->mounted) r = -EBUSY;
+				if (t->mounted || ns_is_mountpoint(t)) r = -EBUSY;
 				else r = sticky_ok(nd, t);
 				vput(t);
 			}
@@ -767,6 +844,7 @@ static int poll_one(File *f, int events) {
 			if (p->nread != p->nwrite) m |= POLLIN;
 			if (p->writers == 0) m |= POLLHUP | POLLIN;
 		}
+		if (f->pipe2) p = f->pipe2;
 		if (f->writable) {
 			if (p->readers == 0) m |= POLLERR;
 			else if (p->nwrite - p->nread < PIPESIZE) m |= POLLOUT;
@@ -796,7 +874,7 @@ int sys_poll(unsigned ufds, unsigned n, int timeout) {
 	for (i = 0; i < n; i++) {
 		int fd = *(int *)&pf[i * 4];
 		File *f = getf(fd);
-		if (f && f->type == FD_INODE && f->vn->type == VT_CHR && f->vn->fs->ops->poll == devfs_ops.poll) cons = 1;
+		if (f && f->type == FD_INODE && devfs_is_console(f->vn)) cons = 1;
 	}
 	curproc->timer_fired = 0;
 	if (timeout > 0) id = timer_add((unsigned)timeout, poll_timeout, curproc);
@@ -876,4 +954,60 @@ int sys_fchmod(int fd, unsigned mode) {
 	if (!f) return -EBADF;
 	if (f->type != FD_INODE) return -EINVAL;
 	return chmod_vnode(f->vn, mode);
+}
+
+static int chown_vnode(Vnode *v, unsigned uid, unsigned gid) {
+	Stat2 st;
+	int r;
+	if (curproc->euid) return -EPERM;
+	if (!v->fs->ops->setattr) return -EPERM;
+	vfs_getattr(v, &st);
+	r = v->fs->ops->setattr(v, SA_OWNER, uid, gid);
+	if (r == 0 && (st.mode & S_IFMT) == S_IFREG && (st.mode & 06000)) r = v->fs->ops->setattr(v, SA_MODE, st.mode & 01777, 0);
+	return r;
+}
+
+int sys_chown(unsigned upath, unsigned uid, unsigned gid) {
+	char path[256];
+	Vnode *v;
+	int r = copy_path(path, upath);
+	if (r) return r;
+	r = vfs_resolve(path, curproc->cwd, 1, &v);
+	if (r) return r;
+	r = chown_vnode(v, uid, gid);
+	vput(v);
+	return r;
+}
+
+int sys_fchown(int fd, unsigned uid, unsigned gid) {
+	File *f = getf(fd);
+	if (!f) return -EBADF;
+	if (f->type != FD_INODE) return -EINVAL;
+	return chown_vnode(f->vn, uid, gid);
+}
+
+int sys_umask(unsigned mask) {
+	int old = (int)curproc->umask;
+	curproc->umask = mask & 0777;
+	return old;
+}
+
+int sys_access(unsigned upath, int mode) {
+	char path[256];
+	Vnode *v;
+	int r = copy_path(path, upath);
+	if (r) return r;
+	if (mode & ~7) return -EINVAL;
+	r = vfs_resolve(path, curproc->cwd, 1, &v);
+	if (r) return r;
+	if (mode) {
+		unsigned e = curproc->euid, g = curproc->egid;
+		curproc->euid = curproc->uid;
+		curproc->egid = curproc->gid;
+		r = vfs_access(v, mode);
+		curproc->euid = e;
+		curproc->egid = g;
+	}
+	vput(v);
+	return r;
 }

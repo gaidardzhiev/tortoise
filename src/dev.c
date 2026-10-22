@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -375,7 +375,7 @@ static void disk2_dev_wr(uint32_t off, uint32_t v) {
 
 static uint32_t rtc_rd(uint32_t off) {
 	if (off != 0) return 0;
-	if (det_clock) return (uint32_t)(cpu.icount / 10000000u);
+	if (det_clock) return (uint32_t)(cpu.icount / 1000000u);
 	return (uint32_t)time(NULL);
 }
 
@@ -424,7 +424,7 @@ static void sys_wr(uint32_t off, uint32_t v) {
 	if (off == SYS_POWEROFF) cpu_stop((int)(v & 0xFF));
 }
 
-static void dev_add(uint32_t base, uint32_t (*rd)(uint32_t), void (*wr)(uint32_t, uint32_t)) {
+void dev_add(uint32_t base, uint32_t (*rd)(uint32_t), void (*wr)(uint32_t, uint32_t)) {
 	Device *d = &devices[(base - DEV_BASE) >> 12];
 	d->base = base;
 	d->rd = rd;
@@ -443,6 +443,8 @@ static void schedule(void) {
 	uint64_t n = ds.poll_at, t;
 	if (cpu.ilimit < n) n = cpu.ilimit;
 	t = timer_next();
+	if (t < n) n = t;
+	t = net_next();
 	if (t < n) n = t;
 	for (int u = 0; u < 2; u++)
 		if ((ds.d_status[u] & 1) && ds.d_done[u] < n) n = ds.d_done[u];
@@ -473,8 +475,13 @@ void dev_reset(void) {
 	dev_add(RTC_BASE, rtc_rd, rtc_wr);
 	dev_add(FB_BASE, fb_rd, fb_wr);
 	dev_add(SYS_BASE, sys_rd, sys_wr);
+	net_reset();
 	ds.poll_at = POLL_INTERVAL;
 	ds.fb_at = FB_INTERVAL;
+	schedule();
+}
+
+void dev_reschedule(void) {
 	schedule();
 }
 
@@ -484,11 +491,13 @@ void dev_events(void) {
 		return;
 	}
 	timer_sync();
+	net_events();
 	for (int u = 0; u < 2; u++)
 		if ((ds.d_status[u] & 1) && cpu.icount >= ds.d_done[u]) disk_complete(u);
 	if (cpu.icount >= ds.poll_at) {
 		dev_flush();
 		stdin_poll(0);
+		net_poll();
 		ds.poll_at = cpu.icount + POLL_INTERVAL;
 	}
 #ifdef TORTOISE_SDL
@@ -512,6 +521,8 @@ void dev_wfi(void) {
 		if (pic_mask & (1u << IRQ_TIMER)) t = timer_next();
 		if ((pic_mask & (1u << IRQ_DISK)) && (ds.d_status[0] & 1) && ds.d_done[0] < t) t = ds.d_done[0];
 		if ((pic_mask & (1u << IRQ_DISK2)) && (ds.d_status[1] & 1) && ds.d_done[1] < t) t = ds.d_done[1];
+		if ((pic_mask & (1u << IRQ_NET)) && net_next() < t) t = net_next();
+		if (net_wait_fd() >= 0) inp = 1;
 		if (t == UINT64_MAX && !inp) {
 			dev_flush();
 			fprintf(stderr, "WFI deadlock at PC=0x%08X\n", cpu.inst_pc);
@@ -519,9 +530,23 @@ void dev_wfi(void) {
 			return;
 		}
 		if (inp) {
+			int nfd = net_wait_fd();
 			dev_flush();
-			if (in_stdin) stdin_poll(t == UINT64_MAX && !has_display ? 1 : 2);
-			else usleep(10000);
+			if (nfd >= 0) {
+				fd_set fs;
+				struct timeval tv = {0, 10000};
+				int block = t == UINT64_MAX && !has_display;
+				FD_ZERO(&fs);
+				FD_SET(nfd, &fs);
+				if (input_wait_possible()) FD_SET(0, &fs);
+				select(nfd + 1, &fs, NULL, NULL, block ? NULL : &tv);
+				if (input_wait_possible()) stdin_poll(0);
+				net_poll();
+			} else if (in_stdin) {
+				stdin_poll(t == UINT64_MAX && !has_display ? 1 : 2);
+			} else {
+				usleep(10000);
+			}
 			if (pic_pending & pic_mask) break;
 		}
 		if (t != UINT64_MAX) {

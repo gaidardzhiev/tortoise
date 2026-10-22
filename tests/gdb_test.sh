@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 port=$((20000 + $$ % 20000))
 ./as tests/gdb_test.asm tests/gdb.tmp.bin > /dev/null || exit 1
 ./tortoise $NOCACHE -g $port tests/gdb.tmp.bin 2> /dev/null &

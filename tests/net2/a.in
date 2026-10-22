@@ -1,0 +1,17 @@
+hostname
+nc -l 7001 < /dev/null > /tmp/fromB &
+sleep 3
+ping -c 3 10.0.0.2
+echo from alpha | nc 10.0.0.2 7000
+tget http://10.0.0.2/hello.txt
+rfork n
+mkdir -p /n/beta
+import 10.0.0.2 /var/www /n/beta
+echo imported $(cat /n/beta/hello.txt)
+ls /n/beta
+unmount /n/beta
+/test/net9test dial tcp!10.0.0.2!7002
+sleep 3
+cat /tmp/fromB
+arp
+shutdown 0

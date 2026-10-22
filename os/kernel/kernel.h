@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #ifndef KERNEL_H
 #define KERNEL_H
 
@@ -102,6 +107,11 @@ typedef struct SigAct {
 } SigAct;
 
 #define TTYBUF 512
+#define MAXPATH 512
+#define ERRMAX 128
+#define NNOTE 5
+#define NCONT 0
+#define NDFLT 1
 #define ICRNL 0x100
 #define OPOST 1
 #define ONLCR 4
@@ -131,6 +141,11 @@ typedef struct Termios {
 	unsigned char c_cc[16];
 } Termios;
 
+typedef struct NoteQ {
+	char notes[NNOTE][ERRMAX];
+	char cur[ERRMAX];
+} NoteQ;
+
 typedef struct TrapFrame {
 	unsigned r7, r6, r5, r4, r3, r2, r1, r0;
 	unsigned pc, flags, usp;
@@ -145,7 +160,7 @@ typedef struct Tty {
 	char buf[TTYBUF];
 	unsigned r, w, e;
 	int pgrp, sid;
-	int pollers, want, hold;
+	int pollers, want, hold, hup;
 	WaitQueue rwq;
 	void (*out)(struct Tty *t, int c);
 	void (*enable)(struct Tty *t);
@@ -287,6 +302,16 @@ typedef struct File {
 	Vnode *vn;
 	unsigned off;
 	Pipe *pipe;
+	char *path;
+	void *sock;
+	struct Pipe *pipe2;
+	char *snap;
+	int snaplen;
+	unsigned mfid;
+	int mopen;
+	int pty;
+	struct Vnode *un[8];
+	int nun;
 } File;
 
 typedef struct Proc {
@@ -297,6 +322,10 @@ typedef struct Proc {
 	TrapFrame *tf;
 	File *files[NOFILE];
 	struct Vnode *cwd;
+	struct Vnode *cwdkey;
+	struct Ns *ns;
+	struct Egrp *egrp;
+	char cwdpath[MAXPATH];
 	unsigned char fdflags[NOFILE];
 	unsigned heap_start, brk, stack_low;
 	Region *regions;
@@ -319,6 +348,14 @@ typedef struct Proc {
 	int in_sys;
 	struct Tty *ctty;
 	char exe[128];
+	char errstr[ERRMAX];
+	int errset;
+	int hang;
+	int nointr;
+	int nopipe;
+	unsigned notify, noteureg;
+	int innote, nnote;
+	struct NoteQ *nq;
 	char *cmdline;
 	unsigned cmdlen;
 	char *environ;
@@ -365,6 +402,31 @@ int strncmp(const char *a, const char *b, unsigned n);
 char *strncpy(char *d, const char *s, unsigned n);
 void kputc(int c);
 void kprintf(const char *f, ...);
+int ksnprintf(char *buf, unsigned n, const char *f, ...);
+unsigned sock_id(struct File *f);
+int sys_socket(int domain, int type, int proto);
+int sys_bind(int fd, unsigned addr);
+int sys_listen(int fd, int backlog);
+int sys_accept(int fd, unsigned addr);
+int sys_connect(int fd, unsigned addr);
+int sys_sendto(int fd, unsigned buf, unsigned n, int flags, unsigned addr);
+int sys_recvfrom(int fd, unsigned buf, unsigned n, int flags, unsigned addr);
+int sys_sockshutdown(int fd, int how);
+int sys_setsockopt(int fd, int level, int name, unsigned val, unsigned len);
+int sys_getsockname(int fd, unsigned addr);
+int sys_getpeername(int fd, unsigned addr);
+int sys_socketpair(int domain, int type, int proto, unsigned fds);
+void net_init(void);
+void net_tick(void);
+int net_run(void);
+void eth_intr(void);
+int net_proc(int which, char *b, unsigned max);
+unsigned kernel_random(void);
+void random_mix(unsigned v);
+unsigned pipe_id(Pipe *p);
+Pipe *pipe_alloc(void);
+void pipe_check(Pipe *p);
+void file_set_path(File *f, const char *path);
 void panic(const char *msg);
 void poweroff(int code);
 
@@ -400,7 +462,11 @@ int do_munmap(unsigned addr, unsigned len);
 unsigned region_flags(Region *r);
 unsigned *kmap(int slot, unsigned pa);
 unsigned frame_alloc_contig(unsigned n);
+int vnode_path(Vnode *start, char *out, unsigned size);
+const char *build_date(void);
+int last_pid(void);
 int devfs_is_fb(Vnode *v);
+int devfs_is_console(Vnode *v);
 unsigned new_pgdir(void);
 int map_page(unsigned pgdir, unsigned va, unsigned pa, unsigned flags);
 unsigned walk(unsigned pgdir, unsigned va);
@@ -447,10 +513,97 @@ Vnode *vref(Vnode *v);
 void vput(Vnode *v);
 int vfs_resolve(const char *path, Vnode *cwd, int follow, Vnode **out);
 int vfs_parent(const char *path, Vnode *cwd, Vnode **dir, char *name);
+#define WFOLLOW 1
+#define WPARENT 2
+#define WNOMNT 4
+#define MREPLACE 0
+#define MBEFORE 1
+#define MAFTER 2
+#define MCREATE 4
+#define MFS 0x100
+#define M9P 0x200
+#define ENOSYS 38
+#define EFBIG 27
+#define NMEMB 8
+#define EROFS 30
+typedef struct Walk {
+	Vnode *key, *v;
+	char path[MAXPATH];
+	char name[28];
+} Walk;
+struct Ns;
+int vfs_walk(const char *path, int flags, Walk *w);
+void walk_done(Walk *w);
+struct Ns *ns_boot(void);
+struct Ns *ns_current(void);
+struct Ns *ns_copy(struct Ns *ns);
+struct Ns *ns_clean(void);
+struct Ns *ns_hold(struct Ns *ns);
+void ns_put(struct Ns *ns);
+void ns_enter_boot(void);
+int note_signal(const char *n);
+int notes_pending(struct Proc *p);
+void post_note(struct Proc *p, const char *text);
+int signal_to_note(struct Proc *p, int sig);
+int deliver_note(TrapFrame *tf);
+int sys_notify(unsigned fn);
+int sys_noted(TrapFrame *tf, int how);
+void note_default(int sig);
+void note_free(struct Proc *p);
+int ns_add(struct Ns *ns, Vnode *key, const char *oldname, Vnode *mem, const char *newname, int flags);
+int ns_is_mountpoint(Vnode *v);
+int ns_union(Vnode *key, Vnode **mem, int max);
+void ns_drop_fs(Fs *fs);
+int ns_fs_refs(Fs *fs, Vnode *v);
+int ns_text(struct Ns *ns, char *b, unsigned max);
+int ns_remove_fs_member(struct Ns *ns, Vnode *key, Vnode *root);
+int sys_bind9(unsigned unew, unsigned uold, int flags);
+int sys_unmount(unsigned unew, unsigned uold);
+int sys_fd2path(int fd, unsigned ubuf, unsigned n);
+int sys_errstr(unsigned ubuf, unsigned n);
+void dev9_init(void);
+Vnode *dev9_root(int c);
+int pipe9_open(Vnode *v, struct File *f);
+int dev9_is_pipe(Vnode *v);
+void fd_name(Proc *p, int fd, char *out, unsigned size);
+Vnode *vpeek(Fs *fs, unsigned ino);
+void netfs_init(void);
+Vnode *netfs_root(int c);
+int net9_open(Vnode *v, struct File *f);
+void net9_close(struct File *f);
+int mnt_open(Vnode *v, struct File *f, int flags);
+void mnt_close(struct File *f);
+const char *mnt_spec(Fs *fs, const char **aname);
+int is_mnt(Fs *fs);
+int sys_mount9(int fd, int afd, unsigned uold, int flags, unsigned uaname);
+void srv_init(void);
+Vnode *srv_root(void);
+struct Egrp;
+struct Egrp *egrp_boot(void);
+struct Egrp *egrp_hold(struct Egrp *g);
+struct Egrp *egrp_clean(void);
+struct Egrp *egrp_copy(struct Egrp *g);
+void egrp_put(struct Egrp *g);
+void env_init(void);
+Vnode *env_root(void);
+struct File *srv_posted(Vnode *v);
+const char *srv_name_of(struct File *f);
+int set_errstr(int err, const char *msg, const char *arg);
+int do_rfork(int flags);
+#define RFNAMEG 0x01
+#define RFENVG 0x02
+#define RFFDG 0x04
+#define RFNOTEG 0x08
+#define RFPROC 0x10
+#define RFNOWAIT 0x40
+#define RFCNAMEG 0x400
+#define RFCENVG 0x800
+#define RFCFDG 0x1000
 int vfs_mount(const char *source, const char *target, const char *fstype);
 int vfs_getattr(Vnode *v, Stat2 *st);
 int vfs_read(Vnode *v, char *buf, unsigned off, unsigned n);
 unsigned vfs_now(void);
+unsigned uptime_ms(void);
 int tfs_mount(Fs *fs, int disk);
 int ramfs_mount(Fs *fs);
 int devfs_mount(Fs *fs);
@@ -461,13 +614,15 @@ void console_init(void);
 void console_intr(void);
 
 File *file_alloc(void);
+File *getf(int fd);
 File *file_dup(File *f);
 void file_close(File *f);
 int fd_alloc(File *f);
 int fd_alloc_from(File *f, int min);
-int sys_open(unsigned path, int flags);
+int sys_open(unsigned path, int flags, unsigned mode);
 int sys_read(int fd, unsigned buf, unsigned n);
 int do_read(File *f, char *kbuf, unsigned n);
+int do_write(File *f, const char *kbuf, unsigned n);
 int write_loop(File *f, unsigned ubuf, unsigned n, char *kbuf);
 int sys_write(int fd, unsigned buf, unsigned n);
 int sys_close(int fd);
@@ -475,7 +630,7 @@ int sys_dup(int fd);
 int sys_dup2(int a, int b);
 int sys_pipe(unsigned fds);
 int sys_readdir(int fd, unsigned dp);
-int sys_mkdir(unsigned path);
+int sys_mkdir(unsigned path, unsigned mode);
 int sys_chdir(unsigned path);
 int sys_unlink(unsigned path);
 int sys_rmdir(unsigned path);
@@ -498,6 +653,17 @@ int sys_umount(unsigned target);
 int sys_ioctl(int fd, unsigned req, unsigned arg);
 int sys_chmod(unsigned path, unsigned mode);
 int sys_fchmod(int fd, unsigned mode);
+int sys_chown(unsigned path, unsigned uid, unsigned gid);
+int sys_fchown(int fd, unsigned uid, unsigned gid);
+int sys_umask(unsigned mask);
+int sys_access(unsigned path, int mode);
+int sys_setuid(unsigned uid);
+int sys_setgid(unsigned gid);
+int sys_setreuid(unsigned r, unsigned e);
+int sys_setregid(unsigned r, unsigned e);
+int sys_getgroups(int n, unsigned list);
+int sys_setgroups(int n, unsigned list);
+int may_signal(Proc *p);
 int vfs_umount(const char *target);
 int vfs_mount_fs(Fs *fs, Vnode *target, const char *source, const char *tpath, const char *fstype);
 int sys_getcwd_k(char *out, unsigned size);
@@ -507,18 +673,24 @@ int in_group(unsigned gid);
 void tfs_umount(Fs *fs);
 void tfs_invalidate(int disk);
 void ramfs_umount(Fs *fs);
-unsigned kernel_random(void);
 File *open_vnode(Vnode *v, int flags);
-unsigned pipe_id(Pipe *p);
+void file_set_path(File *f, const char *path);
 int tty_read(Tty *t, char *buf, unsigned n, File *f);
 int tty_write(Tty *t, const char *buf, unsigned n, File *f);
 int tty_ioctl(Tty *t, unsigned req, unsigned arg, File *f);
 int tty_poll(Tty *t, File *f);
+void tty_setterm(Tty *t, Termios *m);
+int tty_ctl(Tty *t, const char *cmd);
+int ctl_number(const char *s, unsigned *out);
+int ctl_addr(const char *s, const char **end, unsigned *out);
+int ctl_text(char *dst, const char *src, unsigned n);
 void tty_input(Tty *t, int c);
 void tty_init(Tty *t);
 void tty_hangup_session(int sid);
 void console_poll_hold(int on);
 extern Tty contty;
+int pty_open(Vnode *v, File *f);
+void pty_close(File *f);
 int pty_lookup(Vnode *dir, const char *name, Vnode **out);
 int pty_read(Vnode *v, char *buf, unsigned n, File *f);
 int pty_write(Vnode *v, const char *buf, unsigned n, File *f);

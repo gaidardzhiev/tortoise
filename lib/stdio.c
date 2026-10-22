@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <ctype.h>
 
 #define F_READ 1
 #define F_WRITE 2
@@ -160,7 +162,7 @@ FILE *fopen(const char *path, const char *mode) {
 	else if (mode[0] == 'w') fl = (strchr(mode, '+') ? O_RDWR : O_WRONLY) | O_CREAT | O_TRUNC;
 	else if (mode[0] == 'a') fl = (strchr(mode, '+') ? O_RDWR : O_WRONLY) | O_CREAT | O_APPEND;
 	else return NULL;
-	fd = open(path, fl);
+	fd = open(path, fl, 0666);
 	if (fd < 0) return NULL;
 	fp->buf = malloc(BUFSIZ);
 	if (!fp->buf) {
@@ -214,7 +216,7 @@ int remove(const char *path) {
 
 void perror(const char *s) {
 	if (s && *s) fprintf(stderr, "%s: ", s);
-	fprintf(stderr, "error\n");
+	fprintf(stderr, "%s\n", strerror(errno));
 }
 
 typedef struct {
@@ -406,3 +408,130 @@ int snprintf(char *buf, size_t n, const char *f, ...) {
 	va_end(ap);
 	return r;
 }
+
+static FILE *slot(void) {
+	int i;
+	for (i = 3; i < MAXFILES; i++)
+		if (!(files[i].flags & F_OPEN)) return &files[i];
+	errno = EMFILE;
+	return NULL;
+}
+
+static int mode_flags(const char *mode) {
+	int f = F_OPEN;
+	if (mode[0] == 'r' || strchr(mode, '+')) f |= F_READ;
+	if (mode[0] != 'r' || strchr(mode, '+')) f |= F_WRITE;
+	return f;
+}
+
+FILE *fdopen(int fd, const char *mode) {
+	FILE *fp;
+	if (fd < 0 || (mode[0] != 'r' && mode[0] != 'w' && mode[0] != 'a')) {
+		errno = EINVAL;
+		return NULL;
+	}
+	fp = slot();
+	if (!fp) return NULL;
+	fp->buf = malloc(BUFSIZ);
+	if (!fp->buf) return NULL;
+	fp->fd = fd;
+	fp->ungot = -1;
+	fp->rpos = fp->rlen = fp->wlen = 0;
+	fp->flags = mode_flags(mode);
+	return fp;
+}
+
+FILE *freopen(const char *path, const char *mode, FILE *fp) {
+	int fd = fp->fd, fl, nfd;
+	if (fp->flags & F_WRITE) fflush(fp);
+	if (mode[0] == 'r') fl = strchr(mode, '+') ? O_RDWR : O_RDONLY;
+	else if (mode[0] == 'w') fl = (strchr(mode, '+') ? O_RDWR : O_WRONLY) | O_CREAT | O_TRUNC;
+	else if (mode[0] == 'a') fl = (strchr(mode, '+') ? O_RDWR : O_WRONLY) | O_CREAT | O_APPEND;
+	else {
+		errno = EINVAL;
+		return NULL;
+	}
+	nfd = open(path, fl, 0666);
+	if (nfd < 0) return NULL;
+	if (fp->flags & F_OPEN) close(fd);
+	if (nfd != fd) {
+		dup2(nfd, fd);
+		close(nfd);
+	}
+	fp->fd = fd;
+	fp->ungot = -1;
+	fp->rpos = fp->rlen = fp->wlen = 0;
+	fp->flags = mode_flags(mode) | (fp->flags & (F_LINE | F_UNBUF));
+	if (!fp->buf && !(fp->flags & F_UNBUF)) fp->buf = malloc(BUFSIZ);
+	return fp;
+}
+
+int fileno(FILE *fp) {
+	return fp->fd;
+}
+
+long ftell(FILE *fp) {
+	int pos = lseek(fp->fd, 0, SEEK_CUR);
+	if (pos < 0) return -1;
+	pos -= fp->rlen - fp->rpos;
+	if (fp->ungot >= 0) pos--;
+	return pos + fp->wlen;
+}
+
+int fseek(FILE *fp, long off, int whence) {
+	if (whence == SEEK_CUR) off += ftell(fp);
+	if (fp->flags & F_WRITE) fflush(fp);
+	fp->rpos = fp->rlen = 0;
+	fp->ungot = -1;
+	if (lseek(fp->fd, off, whence == SEEK_CUR ? SEEK_SET : whence) < 0) return -1;
+	fp->flags &= ~F_EOF;
+	return 0;
+}
+
+void rewind(FILE *fp) {
+	fseek(fp, 0, SEEK_SET);
+	fp->flags &= ~F_ERR;
+}
+
+void clearerr(FILE *fp) {
+	fp->flags &= ~(F_EOF | F_ERR);
+}
+
+int setvbuf(FILE *fp, char *buf, int mode, size_t size) {
+	if (mode < 0 || mode > 2) return -1;
+	fflush(fp);
+	fp->flags &= ~(F_LINE | F_UNBUF);
+	if (mode == _IOLBF) fp->flags |= F_LINE;
+	if (mode == _IONBF) fp->flags |= F_UNBUF;
+	if (buf && size >= BUFSIZ) fp->buf = buf;
+	else if (!fp->buf && mode != _IONBF) fp->buf = malloc(BUFSIZ);
+	return 0;
+}
+
+void setbuf(FILE *fp, char *buf) {
+	setvbuf(fp, buf, buf ? _IOFBF : _IONBF, BUFSIZ);
+}
+
+int getline(char **line, size_t *cap, FILE *fp) {
+	size_t n = 0;
+	int c;
+	if (!*line || *cap == 0) {
+		*cap = 64;
+		*line = malloc(*cap);
+		if (!*line) return -1;
+	}
+	while ((c = fgetc(fp)) != EOF) {
+		if (n + 2 > *cap) {
+			char *b = realloc(*line, *cap * 2);
+			if (!b) return -1;
+			*line = b;
+			*cap *= 2;
+		}
+		(*line)[n++] = (char)c;
+		if (c == '\n') break;
+	}
+	if (n == 0) return -1;
+	(*line)[n] = 0;
+	return (int)n;
+}
+

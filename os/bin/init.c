@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,12 +26,12 @@ static int nents;
 static int start(Entry *e) {
 	int pid = fork();
 	if (pid < 0) {
-		printf("init: fork failed\n");
+		fprintf(stderr, "init: fork failed\n");
 		return -1;
 	}
 	if (pid == 0) {
 		execv(e->argv[0], e->argv);
-		printf("init: cannot run %s\n", e->argv[0]);
+		fprintf(stderr, "init: cannot run %s\n", e->argv[0]);
 		_exit(127);
 	}
 	e->pid = pid;
@@ -58,7 +63,7 @@ static void parse(char *s) {
 	e->argv[n] = NULL;
 	if (n == 0) return;
 	if (strcmp(e->action, "sysinit") && strcmp(e->action, "respawn") && strcmp(e->action, "once")) {
-		printf("init: unknown action %s\n", e->action);
+		fprintf(stderr, "init: unknown action %s\n", e->action);
 		return;
 	}
 	nents++;
@@ -95,7 +100,7 @@ int main(void) {
 	for (;;) {
 		w = wait(&st);
 		if (w < 0) {
-			sleep(100);
+			usleep(100 * 10000);
 			continue;
 		}
 		for (i = 0; i < nents; i++)

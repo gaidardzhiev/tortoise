@@ -1,0 +1,29 @@
+/test/nstest
+mkdir /nsu /nsv /nsw
+echo one > /nsu/f
+echo two > /nsv/g
+rfork n
+bind -a /nsv /nsu
+ls /nsu
+bind -bc /nsw /nsu
+echo new > /nsu/h
+ls /nsw
+bind /etc/motd /etc/hosts
+cat /etc/hosts
+ns
+ns > /ns1.txt
+unmount /nsv /nsu
+ls /nsu
+unmount /nsu
+ls /nsu
+rfork N
+ls /dev
+cat /etc/hosts
+sh /ns1.txt
+ns > /ns2.txt
+test "$(cat /ns1.txt)" = "$(cat /ns2.txt)" && echo same text
+ls /nsu
+cat /etc/hosts
+cd /tmp
+pwd
+shutdown 0

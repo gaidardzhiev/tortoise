@@ -1,0 +1,35 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/ctltest net
+ok   ether0 down
+ok   ether0 up
+ok   promiscuous on
+ok   promiscuous off
+ok   ether0: an unknown command fails
+ether0: errno 22, errstr unknown control message 'mtu 9000'
+ok   ipifc/1 add
+ipifc/1/ctl: eth0 10.0.0.5 255.255.255.0 up
+ok   ipifc/1 down
+ok   ipifc/1 up
+ok   iproute add
+iproute:
+127.0.0.0 255.0.0.0 0.0.0.0 lo
+10.0.0.0 255.255.255.0 0.0.0.0 eth0
+192.168.5.0 255.255.255.0 10.0.0.1 eth0
+ok   iproute remove
+ok   iproute remove of a missing route fails like SIOCDELRT
+ok   ipifc/1 remove of another address fails
+ipifc: errno 22, errstr address not on interface 'remove 10.0.0.6 255.255.255.0'
+ok   ipifc/1 remove
+ok   ipifc/0 add fails with EPERM like SIOCSIFADDR on lo
+ok   iproute: a bad address fails
+iproute: errno 22, errstr bad address in control message 'add 1.2.3 255.0.0.0 0.0.0.0'
+ctltest: all ok
+$ ifconfig eth0
+eth0: flags=UP,RUNNING
+	inet 0.0.0.0 netmask 0.0.0.0
+	ether 02:00:00:00:00:01
+	rx 0 tx 3 drops 0
+$ cat /net/ether0/ctl
+020000000001
+$ shutdown 0

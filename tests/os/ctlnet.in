@@ -1,0 +1,4 @@
+/test/ctltest net
+ifconfig eth0
+cat /net/ether0/ctl
+shutdown 0

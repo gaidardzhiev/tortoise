@@ -12,6 +12,9 @@ disk0
 disk1
 fb0
 kbd
+consctl
+ptmx
+pts
 $ /test/devtest
 ok   /dev/console is a character device 4,1 mode 666
 ok   /dev/tty is a character device 4,0 mode 666

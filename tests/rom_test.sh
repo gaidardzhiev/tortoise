@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 fail=0
 d=tests/rom
 ./as $d/bootx.asm $d/bootx.tmp > /dev/null || exit 1

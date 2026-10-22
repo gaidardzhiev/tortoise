@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 unsigned ticks;
@@ -48,11 +53,31 @@ static int syscall(TrapFrame *tf) {
 	case 68: return sys_nice((int)tf->r1);
 	case 69: return sys_sethostname(tf->r1, tf->r2);
 	case 87: return sys_times(tf->r1);
+	case 100: return do_rfork((int)tf->r1);
+	case 101: return sys_bind9(tf->r1, tf->r2, (int)tf->r3);
+	case 102: return sys_mount9((int)tf->r1, (int)tf->r2, tf->r3, (int)tf->r4, tf->r5);
+	case 103: return sys_unmount(tf->r1, tf->r2);
+	case 104: return sys_fd2path((int)tf->r1, tf->r2, tf->r3);
+	case 105: return sys_errstr(tf->r1, tf->r2);
+	case 106: return sys_notify(tf->r1);
+	case 107: return sys_noted(tf, (int)tf->r1);
+	case 70: return sys_socket((int)tf->r1, (int)tf->r2, (int)tf->r3);
+	case 71: return sys_bind((int)tf->r1, tf->r2);
+	case 72: return sys_listen((int)tf->r1, (int)tf->r2);
+	case 73: return sys_accept((int)tf->r1, tf->r2);
+	case 74: return sys_connect((int)tf->r1, tf->r2);
+	case 75: return sys_sendto((int)tf->r1, tf->r2, tf->r3, (int)tf->r4, tf->r5);
+	case 76: return sys_recvfrom((int)tf->r1, tf->r2, tf->r3, (int)tf->r4, tf->r5);
+	case 77: return sys_sockshutdown((int)tf->r1, (int)tf->r2);
+	case 78: return sys_setsockopt((int)tf->r1, (int)tf->r2, (int)tf->r3, tf->r4, tf->r5);
+	case 79: return sys_getsockname((int)tf->r1, tf->r2);
+	case 80: return sys_getpeername((int)tf->r1, tf->r2);
+	case 81: return sys_socketpair((int)tf->r1, (int)tf->r2, (int)tf->r3, tf->r4);
 	case 1: do_exit((int)tf->r1); return 0;
 	case 2: return do_fork();
 	case 3: return sys_read((int)tf->r1, tf->r2, tf->r3);
 	case 4: return sys_write((int)tf->r1, tf->r2, tf->r3);
-	case 5: return sys_open(tf->r1, (int)tf->r2);
+	case 5: return sys_open(tf->r1, (int)tf->r2, tf->r3);
 	case 6: return sys_close((int)tf->r1);
 	case 7: return do_wait(tf->r1);
 	case 8: {
@@ -64,7 +89,7 @@ static int syscall(TrapFrame *tf) {
 	case 9: return do_sbrk((int)tf->r1);
 	case 10: return curproc->pid;
 	case 11: return sys_unlink(tf->r1);
-	case 12: return sys_mkdir(tf->r1);
+	case 12: return sys_mkdir(tf->r1, tf->r2);
 	case 13: return sys_chdir(tf->r1);
 	case 14: return sys_readdir((int)tf->r1, tf->r2);
 	case 15: return sys_dup((int)tf->r1);
@@ -85,6 +110,20 @@ static int syscall(TrapFrame *tf) {
 	case 32: return sys_symlink(tf->r1, tf->r2);
 	case 33: return sys_readlink(tf->r1, tf->r2, tf->r3);
 	case 34: return sys_chmod(tf->r1, tf->r2);
+	case 35: return sys_chown(tf->r1, tf->r2, tf->r3);
+	case 36: return sys_umask(tf->r1);
+	case 37: return sys_access(tf->r1, (int)tf->r2);
+	case 38: return (int)curproc->uid;
+	case 39: return (int)curproc->euid;
+	case 40: return (int)curproc->gid;
+	case 41: return (int)curproc->egid;
+	case 42: return sys_setuid(tf->r1);
+	case 43: return sys_setgid(tf->r1);
+	case 88: return sys_setreuid(tf->r1, tf->r2);
+	case 89: return sys_setregid(tf->r1, tf->r2);
+	case 90: return sys_getgroups((int)tf->r1, tf->r2);
+	case 91: return sys_setgroups((int)tf->r1, tf->r2);
+	case 93: return sys_fchown((int)tf->r1, tf->r2, tf->r3);
 	case 92: return sys_fchmod((int)tf->r1, tf->r2);
 	case 55: return sys_fcntl((int)tf->r1, (int)tf->r2, tf->r3);
 	case 56: return sys_ioctl((int)tf->r1, tf->r2, tf->r3);
@@ -124,9 +163,12 @@ void trap(TrapFrame *tf) {
 				curproc->slice--;
 			}
 			timer_tick();
+			net_tick();
 			if (user && curproc && (curproc->slice <= 0 || higher_ready(curproc->nice))) yield();
 		} else if (line == 1) {
 			console_intr();
+		} else if (line == 5) {
+			eth_intr();
 		}
 	} else if (vec == 48 && user) {
 		int nr = (int)tf->r0, r;
@@ -134,12 +176,14 @@ void trap(TrapFrame *tf) {
 		curproc->eintr = 0;
 		curproc->in_sys = 1;
 		curproc->sys_mark = rd(TIMER_COUNT);
+		curproc->errset = 0;
 		r = syscall(tf);
+		if (r < 0 && r > -4096 && !curproc->errset && nr != 105) curproc->errstr[0] = 0;
 		curproc->sys_units += rd(TIMER_COUNT) - curproc->sys_mark;
 		curproc->stime += curproc->sys_units / 10;
 		curproc->sys_units %= 10;
 		curproc->in_sys = 0;
-		if (nr == 47) {
+		if (nr == 47 || (nr == 107 && r != -EINVAL)) {
 			deliver_signals(tf);
 			return;
 		}
@@ -149,6 +193,13 @@ void trap(TrapFrame *tf) {
 		unsigned faddr = get_cr(2);
 		if (!user || !curproc) kernel_fault(tf, vec);
 		if (vec == 14 && fault_in(curproc, faddr, (cause >> 8) & 2) == 0) return;
+		if (curproc->notify && !curproc->innote && curproc->sigact[fault_signal(vec)].handler == SIG_DFL) {
+			char n[64];
+			ksnprintf(n, sizeof(n), "sys: trap: fault %s addr=0x%08x", ((cause >> 8) & 2) ? "write" : "read", faddr);
+			post_note(curproc, n);
+			deliver_signals(tf);
+			return;
+		}
 		{
 			int sig = fault_signal(vec);
 			unsigned h = curproc->sigact[sig].handler;

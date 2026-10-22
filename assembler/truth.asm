@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD R0, 0x0000
 LOAD R1, 0x0000
 OUT R0, 0x0000

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -10,7 +10,7 @@
 #include "opts.h"
 
 void opts_usage(const char *argv0) {
-	fprintf(stderr, "usage: %s [-d] [-v] [-n] [-t] [-m MB] [-x N] [-r rom.bin] [-D disk.img] [-E disk2.img] [-i file] [-g port] [-T file] [-S file] [-L file] [program.bin]\n", argv0);
+	fprintf(stderr, "usage: %s [-d] [-v] [-n] [-t] [-m MB] [-x N] [-r rom.bin] [-D disk.img] [-E disk2.img] [-N none|loop|udp:LPORT:HOST:RPORT] [-M mac] [-W file.pcap] [-i file] [-g port] [-T file] [-S file] [-L file] [program.bin]\n", argv0);
 }
 
 static int num(const char *s, uint64_t *v) {
@@ -60,6 +60,9 @@ int opts_parse(int argc, char **argv, Opts *o) {
 		case 'r': o->rom = p; break;
 		case 'D': o->disk = p; break;
 		case 'E': o->disk2 = p; break;
+		case 'N': o->net = p; break;
+		case 'M': o->mac = p; break;
+		case 'W': o->pcap = p; break;
 		case 'i': o->input = p; break;
 		case 'T': o->trace = p; break;
 		case 'S': o->save = p; break;

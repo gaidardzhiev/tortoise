@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +34,7 @@ static void expect_err(const char *what, int r, int e) {
 }
 
 static int put(const char *path, const char *s) {
-	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC);
+	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	int r;
 	if (fd < 0) return -1;
 	r = write(fd, s, strlen(s));
@@ -52,7 +57,7 @@ int main(void) {
 	int fd, fd2, p[2], r;
 	struct pollfd pf[2];
 	struct utimbuf ut;
-	mkdir("/work");
+	mkdir("/work", 0777);
 	chdir("/work");
 	expect("write a file", put("a.txt", "hello world\n"), 12);
 	fd = open("a.txt", O_RDWR);
@@ -89,8 +94,8 @@ int main(void) {
 	close(p[1]);
 	expect("poll sees hangup", (poll(pf, 1, 5), pf[0].revents & POLLHUP), POLLHUP);
 	close(p[0]);
-	expect_err("O_EXCL on existing file", open("a.txt", O_WRONLY | O_CREAT | O_EXCL), EEXIST);
-	fd = open("new.txt", O_WRONLY | O_CREAT | O_EXCL);
+	expect_err("O_EXCL on existing file", open("a.txt", O_WRONLY | O_CREAT | O_EXCL, 0666), EEXIST);
+	fd = open("new.txt", O_WRONLY | O_CREAT | O_EXCL, 0666);
 	expect("O_EXCL creates", fd >= 0, 1);
 	close(fd);
 	expect_err("O_DIRECTORY on a file", open("a.txt", O_RDONLY | O_DIRECTORY), ENOTDIR);
@@ -119,8 +124,8 @@ int main(void) {
 	expect_err("symlink loop", open("loop1", O_RDONLY), ELOOP);
 	expect_err("O_NOFOLLOW on a link", open("s.txt", O_RDONLY | O_NOFOLLOW), ELOOP);
 	symlink("/work/sub/deeper", "dirlink");
-	mkdir("sub");
-	mkdir("sub/deeper");
+	mkdir("sub", 0777);
+	mkdir("sub/deeper", 0777);
 	put("sub/deeper/f", "deep\n");
 	expect("path through a directory link", (get("dirlink/f", buf, sizeof(buf)), strcmp(buf, "deep\n")), 0);
 	expect_err("rmdir of a non empty directory", rmdir("sub"), ENOTEMPTY);
@@ -159,7 +164,7 @@ int main(void) {
 	expect("times after utime", (stat("x2", &st), st.st_atime == 1000 && st.st_mtime == 2000), 1);
 	expect("utime NULL", utime("x2", NULL), 0);
 	expect("utime NULL sets now", (stat("x2", &st), st.st_mtime != 2000), 1);
-	fd = open("gone.txt", O_RDWR | O_CREAT);
+	fd = open("gone.txt", O_RDWR | O_CREAT, 0666);
 	write(fd, "still here\n", 11);
 	expect("unlink an open file", unlink("gone.txt"), 0);
 	expect_err("name is gone", stat("gone.txt", &st), ENOENT);
@@ -169,7 +174,7 @@ int main(void) {
 	expect("still readable through the descriptor", strcmp(buf, "still here\n"), 0);
 	expect("its link count is zero", (fstat(fd, &st), (int)st.st_nlink), 0);
 	close(fd);
-	expect("mount ramfs", (mkdir("/mnt2"), mount("none", "/mnt2", "ramfs")), 0);
+	expect("mount ramfs", (mkdir("/mnt2", 0777), mount("none", "/mnt2", "ramfs")), 0);
 	expect("write on ramfs", put("/mnt2/r.txt", "ram\n"), 4);
 	expect("ramfs device differs", (stat("/mnt2/r.txt", &st), stat("/work/x2", &lst), st.st_dev != lst.st_dev), 1);
 	chdir("/mnt2");

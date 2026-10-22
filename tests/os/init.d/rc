@@ -1,0 +1,2 @@
+# first boot script
+echo rc first > /tmp/boot.log

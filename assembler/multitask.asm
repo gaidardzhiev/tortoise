@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD R0, timer_isr
 STORE R0, 0x0102
 LOAD R0, 0x2000

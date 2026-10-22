@@ -1,0 +1,55 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/net9test
+/net: . .. ipifc iproute arp cs tcp udp icmp ether0
+cs tcp!localhost!7000: /net/tcp/clone 127.0.0.1!7000
+cs net!127.0.0.1!http: /net/tcp/clone 127.0.0.1!80
+cs udp!*!5200: /net/udp/clone *!5200
+cs tcp!nosuchhost!1: cs: can't translate address 'nosuchhost'
+cs tcp!localhost!nosuchservice: cs: can't translate service 'nosuchservice'
+netmkaddr: tcp!beta!17007 tcp!beta!80 udp!beta!53
+ok   announce tcp!*!5100
+/net/tcp/0: Listen, local 0.0.0.0!5100
+ok   listen9 gives a new conversation
+ok   accept9 and read what the client wrote
+ok   its status is Established
+local 127.0.0.1!5100, remote 127.0.0.1!(port)
+ok   write back
+ok   the dialer got the reply
+ok   fd2path of the data file
+ok   hangup
+ok   socket() connects to the announced port
+ok   the socket() connection is in /net/tcp
+ok   socket() writes, /net reads
+ok   hangup gives the socket end of file
+ok   udp announce
+ok   udp connect
+ok   a datagram through /net/udp
+udp status Open
+ok   connect to a closed port fails
+err: connection refused
+ok   a bad control message
+errstr: unknown control message 'frobnicate'
+ok   the conversation goes when its files close
+net9test: all ok
+$ /test/net9test ether
+ok   ether0/clone gives a conversation
+ok   connect to a frame type
+ok   write a raw frame
+ok   the loop gives it back with its type
+ok   the conversation goes when closed
+net9test: all ok
+$ listen1 tcp!*!5300 /bin/echo hello from listen1 &
+[7]
+$ sleep -t 20
+$ nc 127.0.0.1 5300 < /dev/null
+hello from listen1
+$ ls /net/tcp | head -2
+clone
+0
+$ cat /net/tcp/clone > /dev/null
+$ netstat -n -a -t
+Proto Conv Local                 Remote                State
+tcp   0    0.0.0.0!5300          0.0.0.0!0             Listen
+$ kill %1; wait
+$ shutdown 0

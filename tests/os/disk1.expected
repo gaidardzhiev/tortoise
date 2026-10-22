@@ -12,6 +12,9 @@ disk0
 disk1
 fb0
 kbd
+consctl
+ptmx
+pts
 $ mount /dev/disk1 /mnt tfs
 $ ls -l /mnt
 -     21 data.txt

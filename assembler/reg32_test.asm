@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD32 R0, 0x12345678
 ADD32 R0, 0x00000002
 STORE32 R0, 0x00020000

@@ -1,0 +1,166 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/p9test
+ok   rfork RFNAMEG
+ok   mount9 of ramfs9 on a socket pair
+ok   a file written and read back
+ok   its owner is the caller
+ok   mkdir and rmdir
+ok   a missing file is ENOENT
+missing: errno 2, errstr file does not exist
+ok   mount9 with authentication fails
+afd: errno 22, errstr authentication is not supported
+ok   a server that dies gives EIO
+dead server: errno 5, errstr mount driver: server hung up
+ok   so does a new open
+ok   unmount of the dead mount
+ok   exportfs of /etc over a socket pair
+ok   a file read through exportfs
+ok   stat through exportfs
+ok   creating without MCREATE fails
+ok   exportfs of a directory with MCREATE
+ok   a file created through exportfs is there
+ok   rename through exportfs
+ok   symlink through exportfs
+ok   remove through exportfs
+ok   post a descriptor in /srv
+ok   a second post of the same name fails
+ok   open of the post and mount9
+ok   file through the posted server
+ok   a second mount of the same connection
+ok   both mounts see the same tree
+ok   and keep working side by side
+ok   remove the post
+ok   the mount still works
+mount -c '#s/p9test' /n/s srvtest
+p9test: all ok
+$ rfork n
+$ mkdir -p /n/m /n/i /work
+$ ramfs9 -s r9
+$ ls /srv
+r9
+$ mount -c /srv/r9 /n/m
+$ echo through srv > /n/m/f
+$ cat /n/m/f
+through srv
+$ ns | grep r9
+mount -c '#s/r9' /n/m
+$ exportfs -l &
+[18]
+$ sleep -t 20
+$ import 127.0.0.1 /etc /n/i
+$ cat /n/i/motd
+Welcome to TORTOISE.
+$ ls /n/i | head -3
+hosts
+services
+inittab
+$ unmount /n/i
+$ kill %1; wait
+$ ns > /ns1
+$ rfork N
+$ ls /srv
+$ sh /ns1
+$ ns > /ns2
+$ test "$(cat /ns1)" = "$(cat /ns2)" && echo same text
+same text
+$ cat /n/m/f
+through srv
+$ rm /srv/r9
+$ ls /srv
+$ cat /n/m/f
+through srv
+$ ramfs9 -m /work
+$ /test/fstest
+ok   write a file
+ok   lseek end
+ok   lseek set
+ok   read after lseek
+ok   lseek cur
+ok   lseek before start fails with errno 22
+ok   fstat size
+ok   fstat is regular
+ok   dup2
+ok   dup2 shares offset
+ok   lseek on pipe fails with errno 29
+ok   lseek on console fails with errno 29
+ok   fstat pipe is fifo
+ok   F_GETFL shows O_NONBLOCK
+ok   non blocking read of empty pipe fails with errno 11
+ok   poll: only the write end ready
+ok   poll revents of write end
+ok   poll after write
+ok   poll revents read end
+ok   poll timeout on empty pipe
+ok   poll sees hangup
+ok   O_EXCL on existing file fails with errno 17
+ok   O_EXCL creates
+ok   O_DIRECTORY on a file fails with errno 20
+ok   O_CLOEXEC sets FD_CLOEXEC
+ok   F_SETFD clears it
+ok   F_DUPFD from 20
+FAIL link: got -1 want 0 (errno 1)
+FAIL nlink after link: got 1 want 2 (errno 1)
+FAIL same inode: got 0 want 1 (errno 2)
+ok   link a directory fails with errno 1
+ok   link across file systems fails with errno 18
+ok   unlink one name
+ok   nlink after unlink
+ok   symlink
+ok   readlink length
+ok   stat follows the link
+ok   lstat does not
+FAIL read through link: got -6 want 0 (errno 2)
+FAIL readlink of a file: returned -1 errno 2, want errno 22
+ok   symlink loop fails with errno 40
+ok   O_NOFOLLOW on a link fails with errno 40
+ok   path through a directory link
+ok   rmdir of a non empty directory fails with errno 39
+FAIL rmdir of a file: returned -1 errno 2, want errno 20
+ok   rmdir of a mount point fails with errno 16
+FAIL rename in a directory: got -1 want 0 (errno 2)
+ok   old name gone fails with errno 2
+FAIL rename across directories: got -1 want 0 (errno 2)
+FAIL content after rename: got -4 want 0 (errno 2)
+ok   rename over an existing file
+ok   replaced content
+FAIL rename a directory: got -1 want 0 (errno 18)
+FAIL dotdot of moved directory: got 0 want 1 (errno 2)
+ok   rename into own subtree fails with errno 22
+ok   rename across file systems fails with errno 18
+ok   getcwd
+ok   getcwd with a small buffer fails with errno 34
+FAIL getcwd in a subdirectory: got -47 want 0 (errno 2)
+ok   getcwd on a mounted file system
+ok   dotdot leaves the mount
+ok   truncate shorter
+ok   truncate longer
+ok   truncated file reads zeros
+ok   ftruncate
+ok   truncate a directory fails with errno 21
+ok   utime
+ok   times after utime
+ok   utime NULL
+ok   utime NULL sets now
+ok   unlink an open file
+ok   name is gone fails with errno 2
+ok   still readable through the descriptor
+FAIL its link count is zero: got 1 want 0 (errno 2)
+ok   mount ramfs
+ok   write on ramfs
+ok   ramfs device differs
+ok   umount while in use fails with errno 16
+ok   umount
+ok   file gone after umount fails with errno 2
+ok   mount unknown type fails with errno 19
+ok   mount on a file fails with errno 20
+ok   umount of a directory that is not mounted fails with errno 22
+ok   sync
+ok   /dev/null reads end of file
+ok   /dev/zero reads zeros
+ok   /dev/null is a character device
+ok   open a missing file fails with errno 2
+ok   path through a file fails with errno 20
+ok   name too long fails with errno 36
+fstest: FAILED
+$ shutdown 0

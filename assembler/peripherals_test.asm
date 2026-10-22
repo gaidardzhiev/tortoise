@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD32 R0, 0x000B8000
 LOAD R1, 0x0041
 STORE [R0 + 0], R1

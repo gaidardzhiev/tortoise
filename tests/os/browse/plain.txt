@@ -1,0 +1,2 @@
+Plain text	with a tab
+and two lines

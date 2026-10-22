@@ -1,0 +1,1 @@
+tests/os/browse/index.html:/var/www/index.html tests/os/browse/second.html:/var/www/second.html tests/os/browse/sub/third.html:/var/www/sub/third.html tests/os/browse/plain.txt:/var/www/plain.txt tests/os/browse/hostile.html:/var/www/hostile.html tests/os/browse/redirect.http:/var/www/redirect.http tests/os/browse/binary.http:/var/www/binary.http 

@@ -1,0 +1,43 @@
+mkdir -p /tmp/f/a/b
+pwd
+cd /tmp/f
+pwd
+echo one > a/one.txt
+echo two > a/b/two.txt
+cp a/one.txt copy.txt
+cat copy.txt
+cp -r a tree
+find tree
+find tree -name '*.txt'
+find /tmp/f -type d
+cp a/one.txt a/b/two.txt tree/b
+find tree/b -type f
+mv copy.txt moved.txt
+ls
+mv moved.txt tree
+find tree -name moved.txt
+mv tree/moved.txt /etc/moved-across.txt
+cat /etc/moved-across.txt
+rm /etc/moved-across.txt
+ln a/one.txt hard.txt
+stat hard.txt | grep Links
+ln -s a/one.txt soft.txt
+cat soft.txt
+stat soft.txt | grep link
+find . -type l
+touch new.txt
+stat new.txt | grep Size
+rmdir a/b
+rm -f a/b/two.txt nothing-here
+rmdir a/b
+rm a
+rm -r a tree
+ls
+rm -r nosuch
+rm -f nosuch
+mkdir x
+mkdir x
+du -s /etc
+df | head -n 1
+df | grep -c disk0
+shutdown 0

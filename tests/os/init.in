@@ -1,0 +1,7 @@
+sleep 100
+cat /tmp/boot.log
+cat /tmp/once.log
+cat /tmp/runs
+exit
+echo a new shell from the respawned getty
+shutdown 0

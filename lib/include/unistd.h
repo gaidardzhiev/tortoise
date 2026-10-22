@@ -1,15 +1,11 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
 #ifndef _UNISTD_H
 #define _UNISTD_H
 #include <stddef.h>
-struct dirent {
-	unsigned inode;
-	char name[28];
-};
 struct procinfo {
 	int pid;
 	int ppid;
@@ -27,9 +23,8 @@ int exec(const char *path, char **argv);
 int execv(const char *path, char **argv);
 int getpid(void);
 int unlink(const char *path);
-int mkdir(const char *path, ...);
+int mkdir(const char *path, unsigned mode);
 int chdir(const char *path);
-int readdir(int fd, struct dirent *d);
 int dup(int fd);
 int pipe(int *fds);
 int kill(int pid, int sig);
@@ -48,10 +43,35 @@ int sethostname(const char *name, unsigned len);
 int gethostname(char *name, unsigned len);
 extern char **environ;
 int isatty(int fd);
+int getuid(void);
+int geteuid(void);
+int getgid(void);
+int getegid(void);
+int setuid(int uid);
+int setgid(int gid);
+int setreuid(int r, int e);
+int setregid(int r, int e);
+int getgroups(int n, int *list);
+int setgroups(int n, const int *list);
+int chown(const char *path, int uid, int gid);
+int fchown(int fd, int uid, int gid);
+int access(const char *path, int mode);
+#define R_OK 4
+#define W_OK 2
+#define X_OK 1
+#define F_OK 0
 char *ttyname(int fd);
-int sleep(int ticks);
+unsigned sleep(unsigned seconds);
+int usleep(unsigned usec);
+int execl(const char *path, const char *arg, ...);
+int execlp(const char *file, const char *arg, ...);
+int execle(const char *path, const char *arg, ...);
+int brk(void *addr);
+int getopt(int argc, char *const argv[], const char *opts);
+extern char *optarg;
+extern int optind, opterr, optopt;
 int time(void);
-int shutdown(int code);
+int poweroff(int code);
 int procinfo(int index, struct procinfo *p);
 int lseek(int fd, int off, int whence);
 int dup2(int a, int b);

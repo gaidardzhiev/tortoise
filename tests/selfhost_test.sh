@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 d=tests/selfhost
 cp selfhost.img $d/disk.tmp
 ./tortoise $NOCACHE -m 16 -t -x 4000000000 -r rom/rom.bin -D $d/disk.tmp -i $d/input.txt > $d/out.tmp

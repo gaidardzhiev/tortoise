@@ -1,7 +1,10 @@
 #!/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 fail=0
 base=$(cat tests/os/base.files.tmp)
-for in in tests/os/*.in; do
+for in in ${ONLY:-tests/os/*.in}; do
 	n=$(basename $in .in)
 	img=tests/os/$n.tmp.img
 	extra=""
@@ -13,6 +16,7 @@ for in in tests/os/*.in; do
 		*:/*)
 			p=${w#*:}
 			p=${p%%:*}
+			if [ -f tests/os/$n.drop ] && grep -qxF "$p" tests/os/$n.drop; then keep=0; fi
 			for x in $extra; do
 				case $x in
 				*:"$p" | *:"$p":*) keep=0 ;;
@@ -23,13 +27,15 @@ for in in tests/os/*.in; do
 		[ $keep = 1 ] && files="$files $w"
 	done
 	./tdisk -o $img -s 65536 -b os/boot/boot.bin -k os/kernel/kernel.tex $files $extra > /dev/null || { echo "$n: image failed"; fail=1; continue; }
+	opts=""
+	[ -f tests/os/$n.opts ] && opts=$(cat tests/os/$n.opts)
 	disk2=""
 	if [ -f tests/os/$n.disk2 ]; then
 		./tdisk -o tests/os/$n.tmp2.img -s 8192 $(cat tests/os/$n.disk2) > /dev/null || { echo "$n: second image failed"; fail=1; continue; }
 		disk2="-E tests/os/$n.tmp2.img"
 	fi
 	start=$(date +%s)
-	./tortoise $NOCACHE -m 32 -t -x 4000000000 -r rom/rom.bin -D $img $disk2 -i $in > tests/os/$n.tmp.out
+	./tortoise $NOCACHE -m 32 -t -x 4000000000 -r rom/rom.bin -D $img $disk2 $opts -i $in > tests/os/$n.tmp.out
 	rc=$?
 	secs=$(( $(date +%s) - start ))
 	if [ $rc -ne 0 ]; then

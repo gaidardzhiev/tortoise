@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -126,7 +131,7 @@ int main(void) {
 	catch(SIGALRM, on_sig, SA_RESTART, 0);
 	pid = fork();
 	if (pid == 0) {
-		sleep(30);
+		usleep(30 * 10000);
 		write(p[1], "z", 1);
 		_exit(0);
 	}
@@ -221,7 +226,7 @@ int main(void) {
 			kill(getpid(), SIGSTOP);
 			_exit(1);
 		}
-		sleep(5);
+		usleep(5 * 10000);
 		_exit(0);
 	}
 	waitpid(pid, &st, 0);

@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <time.h>
 #include <sys/wait.h>
 #include "tutil.h"
@@ -183,7 +188,7 @@ static void test_rtc_display(void) {
 	cpu_init();
 	dev_set_det(1);
 	CHECK(phys_read(RTC_BASE, 4) == 0);
-	cpu.icount = 25000000;
+	cpu.icount = 2500000;
 	CHECK(phys_read(RTC_BASE, 4) == 2);
 	dev_set_det(0);
 	uint32_t t = phys_read(RTC_BASE, 4);

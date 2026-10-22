@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD32 R0, 0xFFFFFFFF
 LOAD32 R4, 1
 LOAD32 R5, 0

@@ -1,6 +1,11 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
-#define NDEV 11
+#define NDEV 12
 #define D_CONSOLE 0
 #define D_TTY 1
 #define D_NULL 2
@@ -12,6 +17,7 @@
 #define D_DISK1 8
 #define D_FB0 9
 #define D_KBD 10
+#define D_CONSCTL 11
 
 typedef struct {
 	const char *name;
@@ -31,6 +37,7 @@ static Dev devs[NDEV] = {
 	{"disk1", 8, 1, 0600, 0, 0, 0, 0, 0},
 	{"fb0", 29, 0, 0660, 0, 0, 0, 0, 0},
 	{"kbd", 13, 0, 0660, 0, 0, 0, 0, 0},
+	{"consctl", 4, 2, 0666, 0, 0, 0, 0, 0},
 };
 
 static unsigned rs[4];
@@ -52,6 +59,12 @@ unsigned kernel_random(void) {
 	return xrand();
 }
 
+void random_mix(unsigned v) {
+	rs[0] ^= v;
+	rs[2] ^= v * 2654435761u;
+	xrand();
+}
+
 static int dev_index(Vnode *v) {
 	return v->ino >= 2 && v->ino < 2 + NDEV ? (int)v->ino - 2 : -1;
 }
@@ -67,10 +80,15 @@ int devfs_disk_of(Vnode *v) {
 
 static int d_lookup(Vnode *dir, const char *name, Vnode **out) {
 	int i;
-	if (!strcmp(name, "..") || !strcmp(name, ".")) {
+	if (!strcmp(name, "..")) {
+		*out = vref(dir->fs->root);
+		return 0;
+	}
+	if (!strcmp(name, ".")) {
 		*out = vref(dir);
 		return 0;
 	}
+	if (dir->ino != 1) return pty_lookup(dir, name, out);
 	for (i = 0; i < NDEV; i++)
 		if (!strcmp(devs[i].name, name)) {
 			*out = vget(dir->fs, (unsigned)i + 2, VT_CHR);
@@ -130,6 +148,13 @@ static int fb_io(int write, char *buf, unsigned off, unsigned n) {
 	return (int)n;
 }
 
+int devfs_is_console(Vnode *v) {
+	int i;
+	if (v->fs->ops != &devfs_ops) return 0;
+	i = dev_index(v);
+	return i == D_CONSOLE || (i == D_TTY && curproc && curproc->ctty == &contty);
+}
+
 int devfs_is_fb(Vnode *v) {
 	return v->fs->ops == &devfs_ops && dev_index(v) == D_FB0;
 }
@@ -164,6 +189,8 @@ static int d_read(Vnode *v, char *buf, unsigned off, unsigned n, File *f) {
 	case D_KBD:
 		for (i = 0; i < n && (rd(0xF0004004u) & 1); i++) buf[i] = (char)rd(0xF0004000u);
 		return (int)i;
+	case D_CONSCTL:
+		return 0;
 	}
 	return pty_read(v, buf, n, f);
 }
@@ -189,12 +216,19 @@ static int d_write(Vnode *v, const char *buf, unsigned off, unsigned n, File *f)
 		return fb_io(1, (char *)buf, off, n);
 	case D_KBD:
 		return (int)n;
+	case D_CONSCTL: {
+		char cmd[ERRMAX];
+		int r = ctl_text(cmd, buf, n);
+		if (r < 0) return r;
+		r = tty_ctl(&contty, cmd);
+		return r < 0 ? r : (int)n;
+	}
 	}
 	return pty_write(v, buf, n, f);
 }
 
 static int d_readdir(Vnode *v, unsigned *off, Dirent *de) {
-	if (v->ino != 1) return -ENOTDIR;
+	if (v->ino != 1) return pty_readdir(v, off, de, 0);
 	if (*off == 0) {
 		de->inode = 1;
 		strncpy(de->name, ".", 28);

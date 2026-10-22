@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -7,7 +12,7 @@
 static char buf[4096];
 
 int main(void) {
-	int fd = open("/big.bin", O_RDWR | O_CREAT | O_TRUNC), i, bad = 0;
+	int fd = open("/big.bin", O_RDWR | O_CREAT | O_TRUNC, 0666), i, bad = 0;
 	unsigned total = 8700 * 1024, off;
 	struct stat st;
 	for (off = 0; off < total; off += sizeof(buf)) {
@@ -37,7 +42,7 @@ int main(void) {
 	printf("truncated to %u\n", st.st_size);
 	close(fd);
 	unlink("/big.bin");
-	fd = open("/big2.bin", O_RDWR | O_CREAT);
+	fd = open("/big2.bin", O_RDWR | O_CREAT, 0666);
 	for (off = 0; off < total; off += sizeof(buf))
 		if (write(fd, buf, sizeof(buf)) != (int)sizeof(buf)) {
 			printf("space was not freed\n");

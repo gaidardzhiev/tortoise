@@ -1,0 +1,6 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+. /rc/inc.ns
+bind -c /tmp $home
+cd /tmp

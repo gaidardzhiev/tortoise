@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -78,4 +78,23 @@ int getpid(void) {
 
 int time(void) {
 	return (int)*(volatile unsigned *)0xF0005000;
+}
+
+int lseek(int fd, int off, int whence) {
+	(void)fd;
+	(void)off;
+	(void)whence;
+	errno = ESPIPE;
+	return -1;
+}
+
+int dup2(int a, int b) {
+	(void)a;
+	(void)b;
+	errno = EBADF;
+	return -1;
+}
+
+void abort(void) {
+	_exit(134);
 }

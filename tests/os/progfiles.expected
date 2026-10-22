@@ -1,0 +1,81 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ mkdir -p /tmp/f/a/b
+$ pwd
+/
+$ cd /tmp/f
+$ pwd
+/tmp/f
+$ echo one > a/one.txt
+$ echo two > a/b/two.txt
+$ cp a/one.txt copy.txt
+$ cat copy.txt
+one
+$ cp -r a tree
+$ find tree
+tree
+tree/b
+tree/b/two.txt
+tree/one.txt
+$ find tree -name '*.txt'
+tree/b/two.txt
+tree/one.txt
+$ find /tmp/f -type d
+/tmp/f
+/tmp/f/a
+/tmp/f/a/b
+/tmp/f/tree
+/tmp/f/tree/b
+$ cp a/one.txt a/b/two.txt tree/b
+$ find tree/b -type f
+tree/b/two.txt
+tree/b/one.txt
+$ mv copy.txt moved.txt
+$ ls
+a
+tree
+moved.txt
+$ mv moved.txt tree
+$ find tree -name moved.txt
+tree/moved.txt
+$ mv tree/moved.txt /etc/moved-across.txt
+$ cat /etc/moved-across.txt
+one
+$ rm /etc/moved-across.txt
+$ ln a/one.txt hard.txt
+$ stat hard.txt | grep Links
+Device: 200	Inode: 5	Links: 2
+$ ln -s a/one.txt soft.txt
+$ cat soft.txt
+one
+$ stat soft.txt | grep link
+  Size: 9	Blocks: 1	symbolic link
+$ find . -type l
+./soft.txt
+$ touch new.txt
+$ stat new.txt | grep Size
+  Size: 0	Blocks: 0	regular file
+$ rmdir a/b
+rmdir: cannot remove a/b
+$ rm -f a/b/two.txt nothing-here
+$ rmdir a/b
+$ rm a
+rm: cannot remove a
+$ rm -r a tree
+$ ls
+hard.txt
+soft.txt
+new.txt
+$ rm -r nosuch
+rm: cannot remove nosuch
+$ rm -f nosuch
+$ mkdir x
+$ mkdir x
+mkdir: cannot create x
+$ du -s /etc
+9	/etc
+$ df | head -n 1
+Filesystem   1K-blocks     Used     Free Mounted on
+$ df | grep -c disk0
+1
+$ shutdown 0

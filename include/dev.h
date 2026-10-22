@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -45,6 +45,16 @@ void dev_open_display(void);
 void dev_save(FILE *f);
 int dev_load(FILE *f);
 void pic_raise(int line);
+void dev_add(uint32_t base, uint32_t (*rd)(uint32_t), void (*wr)(uint32_t, uint32_t));
+void dev_reschedule(void);
+int net_config(const char *spec, const char *mac, const char *pcap);
+void net_reset(void);
+uint64_t net_next(void);
+void net_events(void);
+void net_poll(void);
+int net_wait_fd(void);
+void net_inject(const uint8_t *d, int len);
+void net_close(void);
 
 #define PIC_BASE 0xF0000000u
 #define TIMER_BASE 0xF0001000u

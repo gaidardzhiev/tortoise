@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -21,6 +21,9 @@ typedef struct {
 	const char *rom;
 	const char *disk;
 	const char *disk2;
+	const char *net;
+	const char *mac;
+	const char *pcap;
 	const char *input;
 	const char *trace;
 	const char *save;

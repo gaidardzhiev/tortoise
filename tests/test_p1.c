@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -103,7 +108,7 @@ static void test_ramsize(void) {
 }
 
 static void test_bus_errors(void) {
-	uint32_t bad[] = {0x00100000, 0x80000000, 0xEFFFFFFC, 0xF0010000, 0xF0008000, 0xFFFF0000};
+	uint32_t bad[] = {0x00100000, 0x80000000, 0xEFFFFFFC, 0xF0010000, 0xF000A000, 0xFFFF0000};
 	for (unsigned i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
 		plen = 0;
 		load32(0, bad[i]);

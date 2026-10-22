@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	if (rc == 0 && mode == 0) {
-		static const char *libs[] = {"memops.o", "string.o", "stdlib.o", "stdio.o", "ctype.o", NULL};
+		static const char *libs[] = {"memops.o", "string.o", "stdlib.o", "stdio.o", "ctype.o", "scanf.o", "strerror.o", "time.o", "fnmatch.o", NULL};
 		char *largv[300];
 		int n = 0, k;
 		char *v = bare ? "bare" : "os";
@@ -239,8 +239,19 @@ int main(int argc, char **argv) {
 		largv[n++] = out ? out : "a.out";
 		largv[n++] = fmt("%s/%s/%s", libdir, v, bare ? "crt0_bare.o" : "crt0.o");
 		for (k = 0; k < nobjs; k++) largv[n++] = objs[k];
+		largv[n++] = "-l";
 		largv[n++] = fmt("%s/%s/%s", libdir, v, bare ? "sys_bare.o" : "sys.o");
 		for (k = 0; libs[k]; k++) largv[n++] = fmt("%s/%s/%s", libdir, v, libs[k]);
+		if (!bare) {
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "pwd.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "posix.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "socket.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "plan9.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "addns.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "9pconv.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "9p.o");
+			largv[n++] = fmt("%s/%s/%s", libdir, v, "net9.o");
+		}
 		largv[n] = NULL;
 		rc = run(largv);
 	}

@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 .equ UART, 0xF0002000
 .equ DISK, 0xF0003000
 .equ SYSC, 0xF0007000

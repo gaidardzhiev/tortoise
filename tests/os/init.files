@@ -1,0 +1,1 @@
+tests/os/init.d/inittab:/etc/inittab tests/os/init.d/rc:/etc/rc tests/os/init.d/rc2:/etc/rc2 tests/os/init.d/once:/etc/once

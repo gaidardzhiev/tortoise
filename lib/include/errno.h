@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -31,6 +31,7 @@ extern int errno;
 #define ENFILE 23
 #define EMFILE 24
 #define ENOTTY 25
+#define ETXTBSY 26
 #define EFBIG 27
 #define ENOSPC 28
 #define ESPIPE 29
@@ -39,7 +40,9 @@ extern int errno;
 #define EPIPE 32
 #define EDOM 33
 #define ERANGE 34
+#define EDEADLK 35
 #define ENAMETOOLONG 36
+#define ENOLCK 37
 #define ENOSYS 38
 #define ENOTEMPTY 39
 #define ELOOP 40
@@ -49,16 +52,25 @@ extern int errno;
 #define EPROTOTYPE 91
 #define ENOPROTOOPT 92
 #define EPROTONOSUPPORT 93
+#define ESOCKTNOSUPPORT 94
 #define EOPNOTSUPP 95
+#define ENOTSUP 95
+#define EPFNOSUPPORT 96
 #define EAFNOSUPPORT 97
 #define EADDRINUSE 98
 #define EADDRNOTAVAIL 99
+#define ENETDOWN 100
 #define ENETUNREACH 101
+#define ENETRESET 102
+#define ECONNABORTED 103
 #define ECONNRESET 104
+#define ENOBUFS 105
 #define EISCONN 106
 #define ENOTCONN 107
+#define ESHUTDOWN 108
 #define ETIMEDOUT 110
 #define ECONNREFUSED 111
+#define EHOSTDOWN 112
 #define EHOSTUNREACH 113
 #define EALREADY 114
 #define EINPROGRESS 115

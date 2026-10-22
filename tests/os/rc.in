@@ -1,0 +1,24 @@
+rc /rc/lists.rc
+rc /rc/control.rc
+rc /rc/fn.rc
+rc /rc/io.rc
+rc /rc/env.rc
+rc /rc/ns.rc
+echo exit status $?
+rc
+echo interactive $#*
+for (i in a b) {
+echo item $i
+}
+x=`{echo substituted}
+echo $x
+exit
+echo back in sh
+newns /bin/rc -c 'ns | grep -c bind'
+/bin/auth/none /bin/id
+/bin/auth/none /bin/sh -c 'ls /srv; cat /proc/self/ns | grep env'
+newns -n /rc/test.ns /bin/rc -c 'pwd; head -1 /etc/motd; ns | grep root'
+bind /etc/motd /etc/hosts
+ns | grep -c hosts
+ns 1 | grep -c hosts
+shutdown 0

@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 JMP32 start
 table:
 .byte 0x81, 0x7F, 0x34, 0x92, 0x78, 0x56, 0x34, 0x12

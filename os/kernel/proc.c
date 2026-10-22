@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 #define ARGMAX 8192
@@ -75,12 +80,17 @@ void user_init(void) {
 	if (!p) panic("cannot create init");
 	p->pgdir = new_pgdir();
 	p->cwd = vref(rootvn);
+	p->cwdkey = vref(rootvn);
+	strncpy(p->cwdpath, "/", 2);
+	p->ns = ns_hold(ns_boot());
+	p->egrp = egrp_hold(egrp_boot());
 	p->ppid = 0;
 	p->pgid = p->sid = p->pid;
 	p->umask = 022;
 	strncpy(p->name, "init", 31);
 	if (vfs_resolve("/dev/console", rootvn, 1, &cv)) panic("no /dev/console");
 	f = open_vnode(cv, O_RDWR);
+	file_set_path(f, "/dev/console");
 	p->files[0] = f;
 	p->files[1] = file_dup(f);
 	p->files[2] = file_dup(f);
@@ -183,10 +193,53 @@ static char *dupmem(const char *s, unsigned n) {
 	return d;
 }
 
+static void set_root_cwd(Proc *p) {
+	if (p->cwd) vput(p->cwd);
+	if (p->cwdkey) vput(p->cwdkey);
+	p->cwd = vref(rootvn);
+	p->cwdkey = vref(rootvn);
+	strncpy(p->cwdpath, "/", 2);
+}
+
+static int rfork_self(int flags) {
+	int i;
+	if (flags & RFCFDG)
+		for (i = 0; i < NOFILE; i++)
+			if (curproc->files[i]) {
+				file_close(curproc->files[i]);
+				curproc->files[i] = NULL;
+				curproc->fdflags[i] = 0;
+			}
+	if (flags & (RFENVG | RFCENVG)) {
+		struct Egrp *g = (flags & RFCENVG) ? egrp_clean() : egrp_copy(curproc->egrp ? curproc->egrp : egrp_boot());
+		if (!g) return -ENOMEM;
+		egrp_put(curproc->egrp);
+		curproc->egrp = g;
+	}
+	if (flags & (RFNAMEG | RFCNAMEG)) {
+		struct Ns *n = (flags & RFCNAMEG) ? ns_clean() : ns_copy(ns_current());
+		if (!n) return -ENOMEM;
+		ns_put(curproc->ns);
+		curproc->ns = n;
+		if (flags & RFCNAMEG) set_root_cwd(curproc);
+	}
+	return 0;
+}
+
 int do_fork(void) {
-	Proc *np = alloc_proc((unsigned)forkret);
+	return do_rfork(RFPROC | RFFDG);
+}
+
+int do_rfork(int flags) {
+	Proc *np;
 	int i;
 	Region *rs;
+	if (flags & ~(RFPROC | RFNAMEG | RFCNAMEG | RFFDG | RFCFDG | RFENVG | RFCENVG | RFNOWAIT | RFNOTEG)) return -EINVAL;
+	if ((flags & RFNAMEG) && (flags & RFCNAMEG)) return -EINVAL;
+	if ((flags & RFFDG) && (flags & RFCFDG)) return -EINVAL;
+	if ((flags & RFENVG) && (flags & RFCENVG)) return -EINVAL;
+	if (!(flags & RFPROC)) return rfork_self(flags);
+	np = alloc_proc((unsigned)forkret);
 	if (!np) return -ENOMEM;
 	np->pgdir = new_pgdir();
 	rs = copy_regions(curproc->regions);
@@ -202,14 +255,29 @@ int do_fork(void) {
 	}
 	*np->tf = *curproc->tf;
 	np->tf->r0 = 0;
-	for (i = 0; i < NOFILE; i++)
-		if (curproc->files[i]) np->files[i] = file_dup(curproc->files[i]);
-	memcpy(np->fdflags, curproc->fdflags, NOFILE);
+	if (!(flags & RFCFDG)) {
+		for (i = 0; i < NOFILE; i++)
+			if (curproc->files[i]) np->files[i] = file_dup(curproc->files[i]);
+		memcpy(np->fdflags, curproc->fdflags, NOFILE);
+	}
 	np->cwd = vref(curproc->cwd);
+	np->cwdkey = vref(curproc->cwdkey ? curproc->cwdkey : curproc->cwd);
+	memcpy(np->cwdpath, curproc->cwdpath, MAXPATH);
+	if (flags & RFCNAMEG) {
+		np->ns = ns_clean();
+		set_root_cwd(np);
+	} else if (flags & RFNAMEG) {
+		np->ns = ns_copy(ns_current());
+	} else {
+		np->ns = ns_hold(ns_current());
+	}
+	if (flags & RFCENVG) np->egrp = egrp_clean();
+	else if (flags & RFENVG) np->egrp = egrp_copy(curproc->egrp ? curproc->egrp : egrp_boot());
+	else np->egrp = egrp_hold(curproc->egrp ? curproc->egrp : egrp_boot());
 	np->heap_start = curproc->heap_start;
 	np->brk = curproc->brk;
 	np->stack_low = curproc->stack_low;
-	np->ppid = curproc->pid;
+	np->ppid = (flags & RFNOWAIT) ? 1 : curproc->pid;
 	np->pgid = curproc->pgid;
 	np->sid = curproc->sid;
 	np->uid = curproc->uid;
@@ -221,6 +289,13 @@ int do_fork(void) {
 	memcpy(np->groups, curproc->groups, sizeof(np->groups));
 	np->ngroups = curproc->ngroups;
 	np->umask = curproc->umask;
+	if (curproc->notify) {
+		np->nq = kmalloc(sizeof(NoteQ));
+		if (np->nq) {
+			memset(np->nq, 0, sizeof(NoteQ));
+			np->notify = curproc->notify;
+		}
+	}
 	memcpy(np->sigact, curproc->sigact, sizeof(np->sigact));
 	np->sigmask = curproc->sigmask;
 	np->nice = curproc->nice;
@@ -251,6 +326,19 @@ void do_exit(int status) {
 		vput(curproc->cwd);
 		curproc->cwd = NULL;
 	}
+	if (curproc->cwdkey) {
+		vput(curproc->cwdkey);
+		curproc->cwdkey = NULL;
+	}
+	if (curproc->ns) {
+		ns_put(curproc->ns);
+		curproc->ns = NULL;
+	}
+	if (curproc->egrp) {
+		egrp_put(curproc->egrp);
+		curproc->egrp = NULL;
+	}
+	note_free(curproc);
 	if (curproc->alarm_id) {
 		timer_cancel(curproc->alarm_id);
 		curproc->alarm_id = 0;
@@ -332,6 +420,7 @@ int do_wait(unsigned stp) {
 int do_kill(int pid) {
 	Proc *p = find_pid(pid);
 	if (!p || p->state == P_ZOMBIE || pid == 1) return -EINVAL;
+	if (!may_signal(p)) return -EPERM;
 	send_signal(p, SIGKILL);
 	return 0;
 }
@@ -453,6 +542,12 @@ static int exec_image(const char *path, Vnode *ino, char *strs, unsigned total, 
 		set_ptbase(pd);
 		if (old) free_pgdir(old);
 		free_regions(oldr);
+	}
+	if ((st.mode & 06000) && ns_current() != ns_boot()) ns_enter_boot();
+	note_free(curproc);
+	if (curproc->hang) {
+		curproc->hang = 0;
+		send_signal(curproc, SIGSTOP);
 	}
 	if (st.mode & 04000) curproc->euid = st.uid;
 	if (st.mode & 02000) curproc->egid = st.gid;
@@ -687,6 +782,14 @@ int sys_getsid(int pid) {
 #define BUILD_DATE "unknown"
 #endif
 
+const char *build_date(void) {
+	return BUILD_DATE;
+}
+
+int last_pid(void) {
+	return nextpid == 1 ? 32767 : nextpid - 1;
+}
+
 int sys_uname(unsigned u) {
 	char b[160];
 	memset(b, 0, sizeof(b));
@@ -699,11 +802,11 @@ int sys_uname(unsigned u) {
 }
 
 int sys_clock_gettime(int clk, unsigned uts) {
-	unsigned ts[2];
+	unsigned ts[2], ms = uptime_ms();
 	if (clk == 0) ts[0] = vfs_now();
-	else if (clk == 1) ts[0] = ticks / 100;
+	else if (clk == 1) ts[0] = ms / 1000;
 	else return -EINVAL;
-	ts[1] = (ticks % 100) * 10000000u;
+	ts[1] = (ms % 1000 / 10) * 10000000u;
 	return copyout(uts, ts, 8) ? -EFAULT : 0;
 }
 

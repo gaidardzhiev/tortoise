@@ -1,0 +1,61 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/socktest
+ok   unix stream socket
+ok   bind creates a socket file
+ok   bind to an existing path: EADDRINUSE
+ok   listen
+ok   non blocking accept: EAGAIN
+ok   connect
+ok   poll sees the pending connection
+ok   accept
+ok   write to the server
+ok   server reads it
+ok   reply
+ok   MSG_PEEK leaves the data
+ok   getpeername gives the path
+ok   shutdown SHUT_WR gives the server end of file
+ok   the other direction still works
+ok   write after the peer closed: EPIPE
+ok   connect to a closed listener: ECONNREFUSED
+ok   connect to a missing path: ECONNREFUSED
+ok   unix datagram sendto
+ok   datagrams keep their boundaries and sender
+ok   second datagram
+ok   connected datagram socket
+ok   socketpair
+ok   socketpair carries data both ways
+ok   socketpair end of file
+ok   udp bind
+ok   udp bind of a used port: EADDRINUSE
+ok   udp sendto over lo
+ok   udp recvfrom
+ok   reply to the sender's port
+ok   connect a udp socket to a closed port
+ok   port unreachable gives ECONNREFUSED
+ok   SO_RCVTIMEO times out with EAGAIN
+ok   tcp socket and bind
+ok   tcp listen
+ok   tcp connect over lo
+ok   tcp accept gives the client's address
+ok   getsockname
+ok   data client to server
+ok   data server to client
+ok   /proc/net/tcp shows LISTEN and ESTABLISHED
+ok   100000 bytes through 8KB windows arrive intact
+ok   shutdown SHUT_WR gives end of file
+ok   connect to a closed port: ECONNREFUSED
+ok   bind to a listening port: EADDRINUSE
+ok   write after the peer reset: EPIPE
+ok   SO_REUSEADDR binds again after close
+ok   raw ICMP socket as root
+ok   send an echo request
+ok   echo reply with the same id and sequence
+ok   ports below 1024 and raw sockets need root
+ok   gethostbyname from /etc/hosts
+ok   gethostbyname of a dotted address
+ok   gethostbyname of an unknown name
+ok   getservbyname
+ok   inet_ntoa and inet_addr
+socktest: all ok
+$ shutdown 0

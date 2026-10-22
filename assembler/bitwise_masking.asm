@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD R0, 0xABCD
 AND R0, 0x00FF
 XOR R0, 0x00FF

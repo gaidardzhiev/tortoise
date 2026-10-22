@@ -1,0 +1,16 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ sleep 100
+$ cat /tmp/boot.log
+rc first
+rc second
+$ cat /tmp/once.log
+once ran
+$ cat /tmp/runs
+run
+run
+run
+$ exit
+$ echo a new shell from the respawned getty
+a new shell from the respawned getty
+$ shutdown 0

@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD R0, gp_handler
 STORE R0, 0x011A
 LOAD R0, syscall_handler

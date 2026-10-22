@@ -1,0 +1,10 @@
+hostname
+httpd -p 80 /var/www &
+exportfs -l &
+listen1 tcp!*!7002 /bin/echo hello from listen1 on beta &
+nc -l 7000 < /dev/null > /tmp/fromA &
+sleep 6
+echo from beta | nc 10.0.0.1 7001
+sleep 8
+cat /tmp/fromA
+shutdown 0

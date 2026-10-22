@@ -1,0 +1,162 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ sh /test/sh/vars.sh
+hello world world!
+[] []
+hi
+child sees hi
+child sees []
+prefix assignment only
+after []
+status of false:
+1
+status of true: 0
+dollar dollar is a number
+background pid known: yes
+count 3
+first one second two words third three
+arg <one>
+arg <two words>
+arg <three>
+split <one>
+split <two>
+split <words>
+split <three>
+star <one two words three>
+after shift 2 two words
+after shift 2: 0
+zero is /test/sh/vars.sh
+$ sh /test/sh/quotes.sh
+single $x "quoted"
+double value 'inner'
+$x escaped "quote" back\slash
+escapes in double: $x " \ done
+a b c  d e  f
+embedded
+newline
+its concatenated
+/root /root/sub
+$ sh /test/sh/control.sh
+if then
+if else
+elif taken
+test and bracket
+or runs
+and runs
+negated
+while 0
+while 1
+while 2
+for ended with c
+until creates flag
+loop 1
+loop 3
+apple starts with a
+banana starts with b or c
+cherry starts with b or c
+date is something else
+source
+quoted pattern
+one
+two
+group one
+group two
+subshell in /tmp
+still in /
+$ sh /test/sh/funcs.sh
+hello world from a function with 1 arguments
+hello a from a function with 3 arguments
+again
+again
+returned 3 counter x0
+before
+hello nested from a function with 1 arguments
+$ sh /test/sh/redir.sh
+to file
+appended
+error went to file: cat: cannot open /nonexistent
+out
+err
+silenced
+from fd 3: to file / appended
+hello
+PIPES
+3
+$ sh /test/sh/builtins.sh
+/tmp
+/tmp/a/b
+/tmp
+home is /root
+/tmp/a
+x=alpha y=beta gamma
+one=alpha beta gamma
+0077
+Access: 0600	Uid: 0	Gid: 0
+sourced with dot
+sourced with source
++ echo traced
+traced
++ set +x
+not traced
+evaluated alpha
+test -d
+bracket -f
+bracket not
+and/or
+empty and nonempty
+subshell exit 7
+before
+set -e status 1
+exec replaced the shell
+$ sh /test/sh/glob.sh
+a.c b.c
+c.h
+a.c b.c
+*.c *.c
+*.none
+/tmp/g/c.h
+command substitution: a.c b.c c.h .hidden.c
+nested inner deeper
+quoted spaced out
+count 4
+$ sh /test/sh/script.sh a b
+script /test/sh/script.sh got 2 args: a b
+dash c with zero and one
+from a plain file
+from a plain file
+/tmp/plain
+not found status 127
+$ echo script status $?
+script status 5
+$ cat
+abc
+[1]+ Stopped cat
+$ jobs
+[1]+ Stopped cat
+$ fg
+cat
+resumed
+resumed
+$ sleep -t 300 &
+[176]
+$ sleep -t 3000 &
+[177]
+$ jobs
+[1]- Running sleep -t 300
+[2]+ Running sleep -t 3000
+$ kill %2
+$ cat & sleep -t 20
+[178]
+[2]- Terminated sleep -t 3000
+[3]+ Stopped cat
+$ jobs
+[1]  Running sleep -t 300
+[3]+ Stopped cat
+$ kill %cat; sleep -t 20
+[3]+ Terminated cat
+$ fg %1
+sleep -t 300
+$ jobs
+$ echo $(echo the end)
+the end
+$ shutdown 0

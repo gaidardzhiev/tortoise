@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 cp disk.img tests/os/disk.tmp
 ./tortoise $NOCACHE -m 16 -t -x 2000000000 -r rom/rom.bin -D tests/os/disk.tmp -i tests/os/input.txt > tests/os/out.tmp
 rc=$?

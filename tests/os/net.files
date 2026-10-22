@@ -1,0 +1,1 @@
+tests/os/net.d/net.conf:/etc/net.conf tests/os/net.d/index.html:/var/www/index.html tests/os/net.d/hello.txt:/var/www/hello.txt tests/os/net.d/sub.txt:/var/www/sub/file.txt tests/os/net.d/head.req:/etc/head.req tests/os/net.d/telnet.in:/etc/telnet.in

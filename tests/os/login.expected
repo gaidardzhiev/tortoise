@@ -1,0 +1,43 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+login: user
+Password: 
+$ whoami
+user
+$ id
+uid=1000(user) gid=100(users) groups=100(users)
+$ passwd
+Old password: 
+New password: 
+Retype new password: 
+passwd: password changed for user
+$ su
+Password: 
+su: incorrect password
+$ su
+Password: 
+$ whoami
+root
+$ exit
+$ exit
+login: user
+Password: 
+Login incorrect
+login: user
+Password: 
+$ whoami
+user
+$ exit
+login: guest
+$ whoami
+guest
+$ id
+uid=1001(guest) gid=100(users) groups=100(users)
+$ exit
+login: root
+Password: 
+$ whoami
+root
+$ id
+uid=0(root) gid=0(root) groups=0(root),10(wheel)
+$ shutdown 0

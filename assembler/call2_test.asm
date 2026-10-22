@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD32 R0, 0
 LOAD32 R1, functab
 LOAD32 R6, 3

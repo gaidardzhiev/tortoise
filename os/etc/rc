@@ -1,1 +1,27 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 # commands run once at boot by init, before getty
+if [ -f /etc/net.conf ]; then
+	addr=
+	mask=
+	gw=
+	while read key value; do
+		case $key in
+		addr) addr=$value ;;
+		netmask) mask=$value ;;
+		gateway) gw=$value ;;
+		hostname) hostname $value ;;
+		esac
+	done < /etc/net.conf
+	if [ -n "$addr" ]; then
+		if [ -n "$mask" ]; then
+			ifconfig eth0 $addr netmask $mask up
+		else
+			ifconfig eth0 $addr up
+		fi
+	fi
+	if [ -n "$gw" ]; then
+		route add default gw $gw
+	fi
+fi

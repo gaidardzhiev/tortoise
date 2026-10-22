@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 LOAD32 R0, 0xF0007000
 LOAD32 R1, [R0 + 4]
 CMP32 R1, 0x00100000

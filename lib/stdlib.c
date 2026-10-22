@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -246,7 +246,17 @@ int unsetenv(const char *name) {
 
 void __stdio_flush_all(void);
 
+static void (*exit_fns[32])(void);
+static int nexit_fns;
+
+int atexit(void (*fn)(void)) {
+	if (nexit_fns >= 32) return -1;
+	exit_fns[nexit_fns++] = fn;
+	return 0;
+}
+
 void exit(int status) {
+	while (nexit_fns > 0) exit_fns[--nexit_fns]();
 	__stdio_flush_all();
 	_exit(status);
 }
@@ -254,4 +264,79 @@ void exit(int status) {
 void __assert_fail(const char *expr, const char *file, int line) {
 	fprintf(stderr, "assertion failed: %s, file %s, line %d\n", expr, file, line);
 	exit(134);
+}
+
+long labs(long x) {
+	return x < 0 ? -x : x;
+}
+
+div_t div(int a, int b) {
+	div_t r;
+	r.quot = a / b;
+	r.rem = a % b;
+	return r;
+}
+
+ldiv_t ldiv(long a, long b) {
+	ldiv_t r;
+	r.quot = a / b;
+	r.rem = a % b;
+	return r;
+}
+
+void *bsearch(const void *key, const void *base, size_t n, size_t size, int (*cmp)(const void *, const void *)) {
+	size_t lo = 0, hi = n;
+	while (lo < hi) {
+		size_t mid = lo + (hi - lo) / 2;
+		const char *p = (const char *)base + mid * size;
+		int c = cmp(key, p);
+		if (c == 0) return (void *)p;
+		if (c < 0) hi = mid;
+		else lo = mid + 1;
+	}
+	return NULL;
+}
+
+char *optarg;
+int optind = 1, opterr = 1, optopt;
+static int optpos = 1;
+
+int getopt(int argc, char *const argv[], const char *opts) {
+	const char *o;
+	char c;
+	if (optind >= argc || !argv[optind] || argv[optind][0] != '-' || !argv[optind][1]) return -1;
+	if (!strcmp(argv[optind], "--")) {
+		optind++;
+		return -1;
+	}
+	c = argv[optind][optpos++];
+	o = strchr(opts, c);
+	if (!o || c == ':') {
+		optopt = c;
+		if (opterr && opts[0] != ':') fprintf(stderr, "%s: unknown option -%c\n", argv[0], c);
+		if (!argv[optind][optpos]) {
+			optind++;
+			optpos = 1;
+		}
+		return '?';
+	}
+	if (o[1] == ':') {
+		if (argv[optind][optpos]) optarg = argv[optind] + optpos;
+		else if (optind + 1 < argc) optarg = argv[++optind];
+		else {
+			optopt = c;
+			optind++;
+			optpos = 1;
+			if (opterr && opts[0] != ':') fprintf(stderr, "%s: option -%c needs an argument\n", argv[0], c);
+			return opts[0] == ':' ? ':' : '?';
+		}
+		optind++;
+		optpos = 1;
+		return c;
+	}
+	if (!argv[optind][optpos]) {
+		optind++;
+		optpos = 1;
+	}
+	return c;
 }

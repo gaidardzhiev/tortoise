@@ -1,0 +1,45 @@
+hostname
+ifconfig
+route
+ping -c 3 127.0.0.1 | cut -d " " -f 1-5
+ping -c 2 10.0.0.1 | cut -d " " -f 1-5
+nc -l 9000 < /dev/null > /tmp/tcp.txt &
+sleep -t 10
+echo hello over tcp | nc 127.0.0.1 9000
+sleep -t 10
+cat /tmp/tcp.txt
+nc -u -l 9001 < /dev/null > /tmp/udp.txt &
+sleep -t 10
+echo hello over udp | nc -u 127.0.0.1 9001
+sleep -t 10
+kill %nc; sleep -t 5
+cat /tmp/udp.txt
+nc 127.0.0.1 1
+httpd -p 8080 /var/www &
+sleep -t 10
+tget http://127.0.0.1:8080/hello.txt
+tget http://localhost:8080/
+tget http://127.0.0.1:8080/sub
+tget http://127.0.0.1:8080/missing.html
+tget http://127.0.0.1:8080/../etc/passwd
+nc 127.0.0.1 8080 < /etc/head.req
+tget -o /tmp/got.txt http://127.0.0.1:8080/hello.txt
+cat /tmp/got.txt
+telnetd -p 2323 -l /bin/sh &
+sleep -t 10
+telnet 127.0.0.1 2323 < /etc/telnet.in
+sleep -t 500 | nc -l 9100 > /dev/null &
+sleep -t 10
+sleep -t 500 | nc 127.0.0.1 9100 > /dev/null &
+sleep -t 20
+netstat -t
+netstat -t -a
+netstat -u -a
+nc -u -l 9200 < /dev/null > /tmp/bcast.txt &
+sleep -t 10
+echo broadcast on eth0 | nc -u 255.255.255.255 9200
+sleep -t 10
+cat /tmp/bcast.txt
+ifconfig eth0
+arp
+shutdown 0

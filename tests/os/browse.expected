@@ -1,0 +1,437 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ httpd -p 80 /var/www &
+[4]
+$ sleep -t 20
+$ browse -dump http://localhost/index.html
+== Welcome
+
+This is the test page of browse. It has a [1]second page, a link to [2]a third
+one and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+
+name | size
+kernel | 397 KB
+
+Entities: <tag> "quoted" (c) -- ABC end.
+
+[the logo] [image]
+
+[text][Search]
+
+-------------------------------------------------------------------------------
+
+Plain [4]text file.
+
+References
+
+   1. http://localhost/second.html
+   2. http://localhost/sub/third.html
+   3. http://localhost/index.html
+   4. http://localhost/plain.txt
+$ browse -dump -width 40 http://localhost/sub/third.html
+In a subdirectory: [1]up and over,
+[2]scheme relative.
+
+References
+
+   1. http://localhost/second.html
+   2. http://localhost/index.html
+$ browse -dump http://localhost/hostile.html
+Escapes: [2J[31mred[0m and a bell here.
+
+[1]script link [2]local file [3]mail [4]secure [5]userinfo
+
+UTF-8: caf? ? and broken ?? bytes.
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[6]escape in href
+
+unterminated [7]last
+
+References
+
+   1. unsupported:javascript:alert(1)
+   2. refused:file:/etc/passwd
+   3. unsupported:mailto:a@b
+   4. unsupported:https://secure.example/
+   5. unsupported:http://user@evil/
+   6. http://localhost/x[2Jy
+   7. http://localhost/end.html
+$ browse -dump http://localhost/hostile.html | od -c | grep -c 033
+0
+$ browse -dump file:/var/www/plain.txt
+Plain text      with a tab
+and two lines
+$ browse -dump file:/var/www/sub
+== Directory /var/www/sub
+
+* [1]..
+* [2]third.html
+
+References
+
+   1. file:/var/www/
+   2. file:/var/www/sub/third.html
+$ nc -l 8081 < /var/www/redirect.http > /dev/null &
+[14]
+$ sleep -t 10
+$ browse -dump http://localhost:8081/
+The second page. [1]Back to the start.
+
+References
+
+   1. http://localhost/index.html
+[2]+ Done nc -l 8081 < /var/www/redirect.http > /dev/null
+$ nc -l 8082 < /var/www/binary.http > /dev/null &
+[17]
+$ sleep -t 10
+$ browse -dump http://localhost:8082/
+This document is of type application/octet-stream, 9 bytes, which browse does
+not show.
+[2]+ Done nc -l 8082 < /var/www/binary.http > /dev/null
+$ browse -dump http://localhost/missing.html
+== 404 Not Found
+$ browse -dump https://secure.example/
+browse: cannot use the address https://secure.example/
+$ browse -dump http://nosuchhost/
+browse: cannot connect to nosuchhost
+$ browse -dump http://localhost:9/
+browse: cannot connect to localhost
+$ browse http://localhost/index.html
+[H[2J[7m TORTOISE & friends                                                             [0m
+== Welcome
+
+This is the test page of browse. It has a [7m[1]second page[0m, a link to [2]a third
+one and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+http://localhost/second.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m TORTOISE & friends                                                             [0m
+== Welcome
+
+This is the test page of browse. It has a [1]second page, a link to [7m[2]a third[0m
+[7mone[0m and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+http://localhost/sub/third.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m TORTOISE & friends                                                             [0m
+== Welcome
+
+This is the test page of browse. It has a [1]second page, a link to [2]a third
+one and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+loading http://localhost/sub/third.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m Third                                                                          [0m
+In a subdirectory: [7m[1]up and over[0m, [2]scheme relative.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+http://localhost/second.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m TORTOISE & friends                                                             [0m
+== Welcome
+
+This is the test page of browse. It has a [1]second page, a link to [7m[2]a third[0m
+[7mone[0m and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+http://localhost/sub/third.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m TORTOISE & friends                                                             [0m
+== Welcome
+
+This is the test page of browse. It has a [1]second page, a link to [7m[2]a third[0m
+[7mone[0m and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+link 2
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m TORTOISE & friends                                                             [0m
+== Welcome
+
+This is the test page of browse. It has a [1]second page, a link to [2]a third
+one and an [3]anchor.
+
+-- Lists
+
+* apples
+* pears
+   * small
+   * large
+* plums
+
+1. first
+2. second
+
+    A quotation, indented by four columns, long enough to need wrapping when the
+    screen is narrow.
+
+
+        tab     stops
+  kept   as   is
+loading http://localhost/sub/third.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m Third                                                                          [0m
+In a subdirectory: [7m[1]up and over[0m, [2]scheme relative.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+http://localhost/second.html
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[0m[2J[H$ 
+$ browse http://localhost/hostile.html
+[H[2J[7m Hostile ]0;owned title                                                         [0m
+Escapes: [2J[31mred[0m and a bell here.
+
+[7m[1]script link[0m [2]local file [3]mail [4]secure [5]userinfo
+
+UTF-8: caf? ? and broken ?? bytes.
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[6]escape in href
+
+unterminated [7]last
+
+
+
+
+
+
+
+
+
+
+unsupported:javascript:alert(1)
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m Hostile ]0;owned title                                                         [0m
+Escapes: [2J[31mred[0m and a bell here.
+
+[7m[1]script link[0m [2]local file [3]mail [4]secure [5]userinfo
+
+UTF-8: caf? ? and broken ?? bytes.
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[6]escape in href
+
+unterminated [7]last
+
+
+
+
+
+
+
+
+
+
+link 2
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m Hostile ]0;owned title                                                         [0m
+Escapes: [2J[31mred[0m and a bell here.
+
+[7m[1]script link[0m [2]local file [3]mail [4]secure [5]userinfo
+
+UTF-8: caf? ? and broken ?? bytes.
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[6]escape in href
+
+unterminated [7]last
+
+
+
+
+
+
+
+
+
+
+a page from the network may not open a local file: file:/etc/passwd
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[24;1H[KFind: [24;1H[KFind: b[24;1H[KFind: br[24;1H[KFind: bro[24;1H[KFind: brok[24;1H[KFind: broke[24;1H[KFind: broken[H[2J[7m Hostile ]0;owned title                                                         [0m
+UTF-8: caf? ? and broken ?? bytes.
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+[7m[6]escape in href[0m
+
+unterminated [7]last
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+http://localhost/x[2Jy
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[H[2J[7m browse: help                                                                   [0m
+== browse
+
+A text browser for TORTOISE. It shows HTML and plain text, follows http: and
+file: links and never runs scripts.
+
+* Up and down arrows, k and j: the previous and next link
+* Space, + and Page Down: the next page; - and Page Up: the previous one
+* Enter, Right arrow and l: follow the link; a number and Enter: follow that
+   link
+* Left arrow, Backspace and u: go back
+* g: go to an address; r: reload; =: show the address of the page and the link
+* /: find text; n: find it again
+* ? and h: this help; q: quit
+
+
+
+
+
+
+
+
+
+
+up/down: link  enter: follow  left: back  space: page  g: go  ?: help  q: quit[0m[2J[H$ 
+$ kill %1; wait
+$ shutdown 0

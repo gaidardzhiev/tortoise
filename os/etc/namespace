@@ -1,0 +1,7 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+bind -c '#e' /env
+bind -c '#s' /srv
+bind '#I' /net
+bind -a '#l' /net

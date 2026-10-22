@@ -1,6 +1,12 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -10,7 +16,7 @@ static int list(const char *dir, int lflag) {
 	char path[256];
 	int fd;
 	if (stat(dir, &st) < 0) {
-		printf("ls: cannot access %s\n", dir);
+		fprintf(stderr, "ls: cannot access %s\n", dir);
 		return 1;
 	}
 	if (!S_ISDIR(st.st_mode)) {
@@ -20,17 +26,17 @@ static int list(const char *dir, int lflag) {
 	}
 	fd = open(dir, O_RDONLY);
 	if (fd < 0) {
-		printf("ls: cannot open %s\n", dir);
+		fprintf(stderr, "ls: cannot open %s\n", dir);
 		return 1;
 	}
-	while (readdir(fd, &d) > 0) {
-		if (!strcmp(d.name, ".") || !strcmp(d.name, "..")) continue;
+	while (getdirent(fd, &d) > 0) {
+		if (!strcmp(d.d_name, ".") || !strcmp(d.d_name, "..")) continue;
 		if (lflag) {
-			snprintf(path, sizeof(path), "%s/%s", dir, d.name);
+			snprintf(path, sizeof(path), "%s/%s", dir, d.d_name);
 			if (stat(path, &st) < 0) continue;
-			printf("%c %6u %s\n", S_ISDIR(st.st_mode) ? 'd' : '-', st.st_size, d.name);
+			printf("%c %6u %s\n", S_ISDIR(st.st_mode) ? 'd' : '-', st.st_size, d.d_name);
 		} else {
-			printf("%s\n", d.name);
+			printf("%s\n", d.d_name);
 		}
 	}
 	close(fd);

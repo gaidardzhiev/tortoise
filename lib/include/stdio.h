@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -51,4 +51,24 @@ int feof(FILE *fp);
 int ferror(FILE *fp);
 int remove(const char *path);
 void perror(const char *s);
+#define _IOFBF 0
+#define _IOLBF 1
+#define _IONBF 2
+#define L_tmpnam 32
+FILE *fdopen(int fd, const char *mode);
+FILE *freopen(const char *path, const char *mode, FILE *fp);
+FILE *tmpfile(void);
+int fileno(FILE *fp);
+long ftell(FILE *fp);
+int fseek(FILE *fp, long off, int whence);
+void rewind(FILE *fp);
+void clearerr(FILE *fp);
+int setvbuf(FILE *fp, char *buf, int mode, size_t size);
+void setbuf(FILE *fp, char *buf);
+int getline(char **line, size_t *cap, FILE *fp);
+int sscanf(const char *s, const char *f, ...);
+int fscanf(FILE *fp, const char *f, ...);
+int scanf(const char *f, ...);
+int vsscanf(const char *s, const char *f, va_list ap);
+int vfscanf(FILE *fp, const char *f, va_list ap);
 #endif

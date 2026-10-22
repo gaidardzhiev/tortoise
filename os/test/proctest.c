@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,12 +36,16 @@ static unsigned now(void) {
 static int spinner(int inc, int out, unsigned until) {
 	int pid = fork();
 	if (pid == 0) {
-		unsigned n = 0;
+		unsigned n;
 		struct tms t;
 		nice(inc);
-		while (now() < until) n++;
+		while (now() < until - 100) ;
 		times(&t);
-		write(out, &t.tms_utime, 4);
+		n = t.tms_utime + t.tms_stime;
+		while (now() < until) ;
+		times(&t);
+		n = t.tms_utime + t.tms_stime - n;
+		write(out, &n, 4);
 		_exit(0);
 	}
 	return pid;
@@ -57,7 +66,7 @@ int main(void) {
 	expect("gethostname", strcmp(host, "turtle"), 0);
 	expect("sethostname too long", sethostname("abcdefghijklmnopqrstuvwxyz0123456789", 36) == -1 && errno == EINVAL, 1);
 	clock_gettime(CLOCK_MONOTONIC, &a);
-	sleep(25);
+	usleep(25 * 10000);
 	clock_gettime(CLOCK_MONOTONIC, &b);
 	{
 		int d = (b.tv_sec * 100 + b.tv_nsec / 10000000) - (a.tv_sec * 100 + a.tv_nsec / 10000000);
@@ -90,7 +99,7 @@ int main(void) {
 	times(&t);
 	expect("children's ticks counted after wait", t.tms_cutime + t.tms_cstime >= 18, 1);
 	pipe(p);
-	start = now() + 5;
+	start = now() + 100;
 	spinner(0, p[1], start + 100);
 	spinner(0, p[1], start + 100);
 	spinner(10, p[1], start + 100);

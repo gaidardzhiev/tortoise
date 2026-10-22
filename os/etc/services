@@ -1,0 +1,12 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+# name port/protocol aliases
+echo 7/tcp
+echo 7/udp
+ftp 21/tcp
+telnet 23/tcp
+smtp 25/tcp mail
+domain 53/udp
+domain 53/tcp
+http 80/tcp www

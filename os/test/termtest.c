@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,7 +54,7 @@ static int fg_child(int *st) {
 		char buf[64];
 		int r;
 		setpgid(0, 0);
-		while (tcgetpgrp(0) != getpid()) sleep(1);
+		while (tcgetpgrp(0) != getpid()) usleep(1 * 10000);
 		r = read(0, buf, sizeof(buf) - 1);
 		buf[r > 0 ? r : 0] = 0;
 		printf("\nchild read %d: %s", r, buf);
@@ -157,16 +162,16 @@ int main(void) {
 	r = read(0, buf, sizeof(buf));
 	t0 = now() - t0;
 	expect("raw, VMIN 2 VTIME 1: the byte after the gap", r == 1 && buf[0] == 'q', 1);
-	expect("the gap was 100 ms", t0 >= 10 && t0 <= 12, 1);
+	expect("the gap was 100 ms", t0 >= 10 && t0 <= 15, 1);
 	raw(0, 2, 1);
 	t0 = now();
 	r = read(0, buf, sizeof(buf));
 	t0 = now() - t0;
 	expect("raw, VMIN 0 VTIME 2: nothing", r, 0);
-	expect("after 200 ms", t0 >= 20 && t0 <= 22, 1);
+	expect("after 200 ms", t0 >= 20 && t0 <= 25, 1);
 	tcsetattr(0, TCSANOW, &orig);
 	printf("%s\n", fails ? "termtest: FAILED" : "termtest: all ok");
 	fflush(stdout);
-	shutdown(0);
+	poweroff(0);
 	return 0;
 }

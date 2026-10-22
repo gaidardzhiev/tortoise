@@ -22,13 +22,13 @@ cat /etc/big.txt > /copy.txt
 wc /copy.txt
 rm /copy.txt
 wc < /etc/motd
-sleep 2000 &
+sleep -t 2000 &
 ps
 crash
 hello
 nosuchcmd
-sleep 5000 &
+sleep -t 5000 &
 kill 35
-sleep 10
+sleep -t 10
 ps
 shutdown 0

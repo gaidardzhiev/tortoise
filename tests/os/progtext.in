@@ -1,0 +1,55 @@
+cat /etc/words
+cat -n /etc/words
+echo -n no newline; echo
+echo with newline
+head -n 2 /etc/words
+head -3 /etc/words
+tail -n 2 /etc/words
+tail -1 /etc/words
+grep an /etc/words
+grep -v an /etc/words
+grep -i APPLE /etc/words
+grep -c a /etc/words
+grep -n ^b /etc/words
+grep 'e$' /etc/words
+grep 'b.n' /etc/words
+grep 'ch*e' /etc/words
+grep '[pq]' /etc/words
+grep '^[^abc]' /etc/words
+grep nothing /etc/words; echo grep status $?
+sort /etc/words
+sort -r /etc/words
+sort -n /etc/numbers
+sort -n -r /etc/numbers
+sort -u /etc/dups
+uniq /etc/dups
+uniq -c /etc/dups
+sort /etc/dups | uniq -c
+echo hello world | tr a-z A-Z
+echo hello world | tr -d lo
+echo a:b:c:d | cut -d : -f 2,4
+echo a:b:c:d | cut -d : -f 3-
+echo abcdefgh | cut -c 2-4,7
+echo tee line | tee /tmp/t1.txt
+echo second | tee -a /tmp/t1.txt > /dev/null
+cat /tmp/t1.txt
+wc /etc/words
+wc -l /etc/words
+wc -w -c /etc/words
+echo AB | od -c
+echo AB | od -x
+echo AB | od
+echo 1 2 3 4 5 | xargs echo items:
+echo 1 2 3 4 5 | xargs -n 2 echo pair
+cat /etc/words /etc/words /etc/words /etc/words /etc/words | more
+q
+echo end of more
+echo grown > /tmp/tailf.txt
+tail -f /tmp/tailf.txt > /tmp/tailout.txt &
+sleep -t 30
+echo added >> /tmp/tailf.txt
+sleep -t 50
+kill %1
+sleep -t 5
+cat /tmp/tailout.txt
+shutdown 0

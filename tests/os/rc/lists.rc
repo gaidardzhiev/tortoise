@@ -1,0 +1,25 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+x=(apple banana cherry)
+echo $x
+echo $#x
+echo $"x
+y=()
+echo count of empty $#y
+z=one
+echo $#z $z
+echo pre^$x
+echo $x^.c
+a=(1 2 3)
+b=(x y z)
+echo $a^$b
+echo $z.txt
+echo (a b)^-(c d)
+echo 'it''s quoted' '$x' 'a;b'
+w=`{echo one two   three}
+echo $#w $w
+c=`{echo a:b:c | tr : ' '}
+echo $#c $c
+echo $y^x
+echo after the error

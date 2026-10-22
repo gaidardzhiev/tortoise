@@ -1,0 +1,19 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+rfork n
+mkdir -p /tmp/a /tmp/b
+echo in a > /tmp/a/f
+echo in b > /tmp/b/g
+bind -a /tmp/b /tmp/a
+ls /tmp/a
+unmount /tmp/b /tmp/a
+ls /tmp/a
+ramfs9 -s rcram
+mount -c /srv/rcram /tmp/b
+echo on ramfs9 > /tmp/b/h
+cat /tmp/b/h
+ns | grep rcram
+rm /srv/rcram
+exit 3
+echo never

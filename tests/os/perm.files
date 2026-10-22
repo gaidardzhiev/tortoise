@@ -1,0 +1,1 @@
+tests/os/perm.d/passwd:/etc/passwd tests/os/perm.d/group:/etc/group

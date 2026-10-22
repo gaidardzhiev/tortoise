@@ -1,0 +1,1 @@
+tests/os/sh/builtins.sh:/test/sh/builtins.sh tests/os/sh/control.sh:/test/sh/control.sh tests/os/sh/funcs.sh:/test/sh/funcs.sh tests/os/sh/glob.sh:/test/sh/glob.sh tests/os/sh/quotes.sh:/test/sh/quotes.sh tests/os/sh/redir.sh:/test/sh/redir.sh tests/os/sh/script.sh:/test/sh/script.sh tests/os/sh/vars.sh:/test/sh/vars.sh 

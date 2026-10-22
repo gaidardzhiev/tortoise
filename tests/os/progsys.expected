@@ -1,0 +1,94 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ env | grep -c PATH=
+1
+$ printenv HOME
+/root
+$ printenv NOSUCH; echo printenv status $?
+printenv status 1
+$ env A=1 B=2 sh -c 'echo $A $B'
+1 2
+$ env -i sh -c 'printenv | wc -l'
+1
+$ test 1 -eq 1 && echo test true
+test true
+$ [ a = b ] || echo bracket false
+bracket false
+$ true && echo true
+true
+$ false || echo false
+false
+$ basename /usr/lib/file.txt
+file.txt
+$ basename /usr/lib/file.txt .txt
+file
+$ basename /
+/
+$ dirname /usr/lib/file.txt
+/usr/lib
+$ dirname file.txt
+.
+$ dirname /file
+/
+$ date +%Y-%m-%d
+1970-01-01
+$ date +%j%%
+001%
+$ uptime | cut -c1-3
+up 
+$ id
+uid=0(root) gid=0(root) groups=0(root),10(wheel)
+$ whoami
+root
+$ hostname
+tortoise
+$ hostname turtle
+$ hostname
+turtle
+$ uname
+TORTOISE
+$ uname -s -r -m
+TORTOISE 3.0 tortoise
+$ uname -n
+turtle
+$ which sh ls nosuch; echo which status $?
+/bin/sh
+/bin/ls
+which status 1
+$ sleep 1
+$ kill -l | head -n 3
+1 HUP
+2 INT
+3 QUIT
+$ sleep -t 500 &
+[41]
+$ kill -USR1 %1; sleep -t 10
+[1]+ User signal 1 sleep -t 500
+$ ps -f | head -n 1
+  UID   PID  PPID STATE  CMD
+$ ps -e | grep -c init
+1
+$ nice -n 5 sh -c 'grep Nice /proc/self/status'
+Nice:	5
+$ nice
+0
+$ cd /tmp
+$ nohup echo away
+nohup: appending output to nohup.out
+$ cat nohup.out
+away
+$ cd /
+$ dmesg | head -n 1
+TORTOISE OS booting, 32768 KB RAM
+$ lsof > /tmp/lsof.txt; grep '^lsof ' /tmp/lsof.txt | head -n 3 | cut -c1-10,18-
+lsof         0 /dev/console
+lsof         1 /tmp/lsof.txt
+lsof         2 /dev/console
+$ sync; echo synced
+synced
+$ top | grep PID
+  PID  PPID S  NI  UTIME  STIME NAME
+$ 
+$ mount | grep proc
+proc /proc proc
+$ shutdown 0

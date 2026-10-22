@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 unsigned ram_size;
@@ -38,7 +43,8 @@ void kmain(unsigned ramsize) {
 	wr(TIMER_PRESCALE, 1000);
 	wr(TIMER_PERIOD, 10);
 	wr(TIMER_CTRL, 1);
-	wr(PIC_MASK, 3);
+	net_init();
+	wr(PIC_MASK, 0x23);
 	user_init();
 	scheduler();
 }

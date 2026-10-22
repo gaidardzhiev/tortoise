@@ -1,0 +1,41 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/permtest
+mode 0400: owner r-- group --- other --- root rw-
+mode 0200: owner -w- group --- other --- root rw-
+mode 0100: owner --x group --- other --- root rwx
+mode 0040: owner --- group r-- other --- root rw-
+mode 0020: owner --- group -w- other --- root rw-
+mode 0010: owner --- group --x other --- root rwx
+mode 0004: owner --- group --- other r-- root rw-
+mode 0002: owner --- group --- other -w- root rw-
+mode 0001: owner --- group --- other --x root rwx
+mode 0640: owner rw- group r-- other --- root rw-
+mode 0750: owner rwx group r-x other --- root rwx
+mode 0000: owner --- group --- other --- root rw-
+ok   a directory without x for others stops the lookup
+ok   creating in a directory without w is EACCES
+ok   anyone creates in a sticky directory
+ok   sticky: another user cannot unlink it
+ok   sticky: nor rename it
+ok   sticky: a user removes its own file
+ok   sticky: the owner removes its file
+ok   sticky: root removes anything
+ok   chown is root only
+ok   the owner may chmod
+ok   others may not chmod
+ok   chown clears set user and group id
+ok   umask and the creator's ids
+ok   a setgid directory gives its group
+ok   a user cannot setuid back to root
+ok   mount is root only
+ok   setreuid swaps real and effective
+ok   kill another user's process: EPERM
+ok   kill a process of the same user
+ok   root may kill it
+a set user id program run by user 1000:
+uid=1000(user) gid=100(users) euid=1001(other)
+ok   root cannot exec a file without x bits
+ok   access uses the real ids
+permtest: all ok
+$ shutdown 0

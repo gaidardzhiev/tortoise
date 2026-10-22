@@ -1,0 +1,46 @@
+env | grep -c PATH=
+printenv HOME
+printenv NOSUCH; echo printenv status $?
+env A=1 B=2 sh -c 'echo $A $B'
+env -i sh -c 'printenv | wc -l'
+test 1 -eq 1 && echo test true
+[ a = b ] || echo bracket false
+true && echo true
+false || echo false
+basename /usr/lib/file.txt
+basename /usr/lib/file.txt .txt
+basename /
+dirname /usr/lib/file.txt
+dirname file.txt
+dirname /file
+date +%Y-%m-%d
+date +%j%%
+uptime | cut -c1-3
+id
+whoami
+hostname
+hostname turtle
+hostname
+uname
+uname -s -r -m
+uname -n
+which sh ls nosuch; echo which status $?
+sleep 1
+kill -l | head -n 3
+sleep -t 500 &
+kill -USR1 %1; sleep -t 10
+ps -f | head -n 1
+ps -e | grep -c init
+nice -n 5 sh -c 'grep Nice /proc/self/status'
+nice
+cd /tmp
+nohup echo away
+cat nohup.out
+cd /
+dmesg | head -n 1
+lsof > /tmp/lsof.txt; grep '^lsof ' /tmp/lsof.txt | head -n 3 | cut -c1-10,18-
+sync; echo synced
+top | grep PID
+q
+mount | grep proc
+shutdown 0

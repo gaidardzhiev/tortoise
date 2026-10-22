@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 #define BIT(s) (1u << (s))
@@ -43,16 +48,17 @@ void send_signal(Proc *p, int sig) {
 }
 
 int signal_pending(void) {
-	if (!curproc) return 0;
-	return (curproc->sigpend & (~curproc->sigmask | UNBLOCKABLE)) != 0;
+	if (!curproc || curproc->nointr) return 0;
+	return (curproc->sigpend & (~curproc->sigmask | UNBLOCKABLE)) != 0 || notes_pending(curproc);
 }
 
 void send_sigpipe(void) {
+	if (curproc->nopipe) return;
 	send_signal(curproc, SIGPIPE);
 }
 
-static int may_signal(Proc *p) {
-	if (curproc->euid == 0 || curproc->uid == 0) return 1;
+int may_signal(Proc *p) {
+	if (curproc->euid == 0) return 1;
 	return curproc->uid == p->uid || curproc->uid == p->suid || curproc->euid == p->uid || curproc->euid == p->suid;
 }
 
@@ -183,6 +189,15 @@ static void stop_self(int sig) {
 	sched();
 }
 
+void note_default(int sig) {
+	if (default_ignored(sig)) return;
+	if (BIT(sig) & STOPSIGS) {
+		if (sig == SIGSTOP || !orphan_pgrp(curproc->pgid)) stop_self(sig);
+		return;
+	}
+	exit_signal(sig);
+}
+
 void exit_signal(int sig) {
 	curproc->sigpend = 0;
 	do_exit(0x10000 | sig);
@@ -217,6 +232,7 @@ void deliver_signals(TrapFrame *tf) {
 		curproc->sigpend &= ~BIT(sig);
 		a = &curproc->sigact[sig];
 		if (sig != SIGKILL && sig != SIGSTOP && a->handler == SIG_IGN) continue;
+		if (a->handler == SIG_DFL && !default_ignored(sig) && signal_to_note(curproc, sig)) continue;
 		if (sig == SIGKILL || sig == SIGSTOP || a->handler == SIG_DFL) {
 			if (default_ignored(sig)) continue;
 			if (BIT(sig) & STOPSIGS) {
@@ -236,6 +252,14 @@ void deliver_signals(TrapFrame *tf) {
 			exit_signal(SIGSEGV);
 		}
 		return;
+	}
+	{
+		int r = deliver_note(tf);
+		if (r < 0) exit_signal(SIGSEGV);
+		if (r > 0) {
+			curproc->eintr = 0;
+			return;
+		}
 	}
 	if (curproc->eintr) {
 		tf->pc -= 1;

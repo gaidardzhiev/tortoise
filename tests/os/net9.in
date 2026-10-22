@@ -1,0 +1,10 @@
+/test/net9test
+/test/net9test ether
+listen1 tcp!*!5300 /bin/echo hello from listen1 &
+sleep -t 20
+nc 127.0.0.1 5300 < /dev/null
+ls /net/tcp | head -2
+cat /net/tcp/clone > /dev/null
+netstat -n -a -t
+kill %1; wait
+shutdown 0

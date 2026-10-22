@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 Tty contty;
@@ -152,6 +157,10 @@ static int canon_read(Tty *t, char *dst, unsigned n, int nonblock) {
 	unsigned i = 0;
 	int r;
 	while (t->r == t->w) {
+		if (t->hup) {
+			done_reading(t);
+			return 0;
+		}
 		r = wait_input(t, 0, nonblock);
 		if (r < 0) {
 			done_reading(t);
@@ -218,6 +227,7 @@ static int raw_read(Tty *t, char *dst, unsigned n, int nonblock) {
 int tty_read(Tty *t, char *dst, unsigned n, File *f) {
 	int r;
 	if (!t) return -ENXIO;
+	if (t->hup && t->r == t->w) return 0;
 	r = background_check(t, SIGTTIN);
 	if (r) return r;
 	t->hold = 0;
@@ -261,8 +271,7 @@ int tty_ioctl(Tty *t, unsigned req, unsigned arg, File *f) {
 		r = background_check(t, SIGTTOU);
 		if (r) return r;
 		if (copyin(&m, arg, sizeof(m))) return -EFAULT;
-		if ((t->t.c_lflag & ICANON) && !(m.c_lflag & ICANON)) t->w = t->e;
-		t->t = m;
+		tty_setterm(t, &m);
 		return 0;
 	}
 	case TIOCSCTTY:
@@ -365,4 +374,30 @@ void console_poll_hold(int on) {
 	} else if (contty.pollers > 0) {
 		contty.pollers--;
 	}
+}
+
+void tty_setterm(Tty *t, Termios *m) {
+	if ((t->t.c_lflag & ICANON) && !(m->c_lflag & ICANON)) t->w = t->e;
+	t->t = *m;
+}
+
+int tty_ctl(Tty *t, const char *cmd) {
+	Termios m = t->t;
+	const char *a;
+	int r = background_check(t, SIGTTOU);
+	if (r) return r;
+	if (!strcmp(cmd, "rawon")) m.c_lflag &= ~(ICANON | ECHO);
+	else if (!strcmp(cmd, "rawoff")) m.c_lflag |= ICANON | ECHO;
+	else if (!strcmp(cmd, "echo on")) m.c_lflag |= ECHO;
+	else if (!strcmp(cmd, "echo off")) m.c_lflag &= ~ECHO;
+	else if (!strcmp(cmd, "isig on")) m.c_lflag |= ISIG;
+	else if (!strcmp(cmd, "isig off")) m.c_lflag &= ~ISIG;
+	else if (!strncmp(cmd, "vmin ", 5) || !strncmp(cmd, "vtime ", 6)) {
+		unsigned v;
+		a = cmd + (cmd[1] == 'm' ? 5 : 6);
+		if (ctl_number(a, &v) || v > 255) return set_errstr(EINVAL, "bad number in control message", cmd);
+		m.c_cc[cmd[1] == 'm' ? VMIN : VTIME] = (unsigned char)v;
+	} else return set_errstr(EINVAL, "unknown control message", cmd);
+	tty_setterm(t, &m);
+	return 0;
 }

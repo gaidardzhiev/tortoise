@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -338,7 +338,6 @@ static Tok *tokenize(char *src, char *file) {
 		t->text = xmalloc((int)(p - s) + 1);
 		memcpy(t->text, s, p - s);
 		t->text[p - s] = 0;
-		if (t->kind == T_NUM) parse_number(t);
 		cur->next = t;
 		cur = t;
 	}
@@ -583,6 +582,7 @@ static long eval_primary(Tok **pp, Tok *dir) {
 	}
 	if (t->kind == T_NUM || t->kind == T_CHAR) {
 		*pp = t->next;
+		if (t->kind == T_NUM) parse_number(t);
 		return (long)(int)t->val;
 	}
 	if (t->kind == T_IDENT) {
@@ -1069,6 +1069,7 @@ Tok *preprocess(const char *path) {
 		if (t->kind == T_PUNCT && t->len == -1) error_at(t, "%s", t->str);
 		if (t->kind == T_IDENT && expand(t)) continue;
 		t = copy_tok(t);
+		if (t->kind == T_NUM) parse_number(t);
 		cur->next = t;
 		cur = t;
 	}

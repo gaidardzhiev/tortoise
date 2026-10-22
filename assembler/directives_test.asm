@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 JMP code_start
 data_bytes:
 .byte 10, 20, 30, 40

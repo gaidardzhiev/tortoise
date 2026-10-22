@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 #include <stdarg.h>
 
@@ -41,7 +46,15 @@ void kputc(int c) {
 	wr(UART_DATA, (unsigned)(c & 0xFF));
 }
 
+static char *sbuf;
+static unsigned slen, smax;
+
 static void kout(int c) {
+	if (sbuf) {
+		if (slen + 1 < smax) sbuf[slen] = (char)c;
+		slen++;
+		return;
+	}
 	kputc(c);
 	klog_putc(c);
 }
@@ -63,9 +76,7 @@ static void kputnum(unsigned v, int base, int width, int neg) {
 	while (n) kout(buf[--n]);
 }
 
-void kprintf(const char *f, ...) {
-	va_list ap;
-	va_start(ap, f);
+static void kvprintf(const char *f, va_list ap) {
 	for (; *f; f++) {
 		int width = 0;
 		if (*f != '%') {
@@ -90,7 +101,26 @@ void kprintf(const char *f, ...) {
 		default: kout('%'); kout(*f); break;
 		}
 	}
+}
+
+void kprintf(const char *f, ...) {
+	va_list ap;
+	va_start(ap, f);
+	kvprintf(f, ap);
 	va_end(ap);
+}
+
+int ksnprintf(char *buf, unsigned n, const char *f, ...) {
+	va_list ap;
+	sbuf = buf;
+	slen = 0;
+	smax = n;
+	va_start(ap, f);
+	kvprintf(f, ap);
+	va_end(ap);
+	if (n) buf[slen < n ? slen : n - 1] = 0;
+	sbuf = NULL;
+	return (int)slen;
 }
 
 void poweroff(int code) {

@@ -1,0 +1,6 @@
+rc:sysinit:/bin/sh /etc/rc
+s2:sysinit:/bin/sh /etc/rc2
+# a comment
+o:once:/bin/sh /etc/once
+r:respawn:/test/respawner
+con:respawn:/bin/getty /dev/console

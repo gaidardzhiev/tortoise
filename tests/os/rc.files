@@ -1,0 +1,1 @@
+tests/os/rc/control.rc:/rc/control.rc tests/os/rc/env.rc:/rc/env.rc tests/os/rc/fn.rc:/rc/fn.rc tests/os/rc/inc.ns:/rc/inc.ns tests/os/rc/io.rc:/rc/io.rc tests/os/rc/lib.rc:/rc/lib.rc tests/os/rc/lists.rc:/rc/lists.rc tests/os/rc/ns.rc:/rc/ns.rc tests/os/rc/test.ns:/rc/test.ns 

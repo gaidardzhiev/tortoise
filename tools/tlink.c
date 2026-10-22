@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -42,6 +42,8 @@ typedef struct {
 	char *str;
 	unsigned strsz;
 	unsigned base[4];
+	int lib;
+	int keep;
 } Obj;
 
 typedef struct {
@@ -178,6 +180,63 @@ static void read_obj(const char *path) {
 	}
 }
 
+static int defines(Obj *o, const char *name) {
+	int j;
+	for (j = 0; j < o->nsyms; j++)
+		if (o->syms[j].bind == 1 && o->syms[j].sec != 0 && strcmp(o->str + o->syms[j].name, name) == 0) return 1;
+	return 0;
+}
+
+static int needs(Obj *o, int j) {
+	int k;
+	if (o->syms[j].sec != 0) return 0;
+	for (k = 0; k < o->nrels; k++)
+		if (o->rels[k].sym == (unsigned)j) return 1;
+	return 0;
+}
+
+static int lib_clashes(void) {
+	int i, j, k, n = 0;
+	for (i = 0; i < nobjs; i++)
+		for (j = 0; j < objs[i].nsyms; j++) {
+			const char *name = objs[i].str + objs[i].syms[j].name;
+			if (objs[i].syms[j].bind != 1 || objs[i].syms[j].sec == 0) continue;
+			for (k = i + 1; k < nobjs; k++)
+				if ((objs[i].lib || objs[k].lib) && defines(&objs[k], name)) {
+					fprintf(stderr, "tlink: symbol %s defined in %s and %s\n", name, objs[i].path, objs[k].path);
+					n++;
+				}
+		}
+	return n;
+}
+
+static void select_lib(void) {
+	int i, j, k, n, changed = 1;
+	for (i = 0; i < nobjs; i++) objs[i].keep = !objs[i].lib;
+	while (changed) {
+		changed = 0;
+		for (i = 0; i < nobjs; i++) {
+			Obj *o = &objs[i];
+			if (!o->keep) continue;
+			for (j = 0; j < o->nsyms; j++) {
+				const char *name = o->str + o->syms[j].name;
+				int have = 0;
+				if (!needs(o, j)) continue;
+				for (k = 0; k < nobjs && !have; k++)
+					if (objs[k].keep && defines(&objs[k], name)) have = 1;
+				for (k = 0; k < nobjs && !have; k++)
+					if (!objs[k].keep && defines(&objs[k], name)) {
+						objs[k].keep = 1;
+						have = changed = 1;
+					}
+			}
+		}
+	}
+	for (i = n = 0; i < nobjs; i++)
+		if (objs[i].keep) objs[n++] = objs[i];
+	nobjs = n;
+}
+
 static unsigned align(unsigned v, unsigned a) {
 	return (v + a - 1) & ~(a - 1);
 }
@@ -191,7 +250,7 @@ static void define_special(const char *name, unsigned addr) {
 
 int main(int argc, char *argv[]) {
 	const char *out = NULL, *entry_name = "_start";
-	int flat = 0, explicit_entry = 0, i, j, errors = 0, map = 0;
+	int flat = 0, explicit_entry = 0, i, j, errors = 0, map = 0, lib = 0;
 	unsigned entry, total, pos;
 	FILE *f;
 	for (i = 0; i < NHASH; i++) ghash[i] = -1;
@@ -199,18 +258,24 @@ int main(int argc, char *argv[]) {
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-b") == 0) flat = 1;
 		else if (strcmp(argv[i], "-M") == 0) map = 1;
+		else if (strcmp(argv[i], "-l") == 0) lib = 1;
 		else if (strcmp(argv[i], "-T") == 0 && i + 1 < argc) text_addr = (unsigned)strtoul(argv[++i], NULL, 0);
 		else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
 			entry_name = argv[++i];
 			explicit_entry = 1;
 		} else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) out = argv[++i];
 		else if (argv[i][0] == '-') die("unknown option ", argv[i]);
-		else read_obj(argv[i]);
+		else {
+			read_obj(argv[i]);
+			objs[nobjs - 1].lib = lib;
+		}
 	}
 	if (!out || nobjs == 0) {
-		fprintf(stderr, "usage: tlink [-b] [-T addr] [-e sym] -o out file.o ...\n");
+		fprintf(stderr, "usage: tlink [-b] [-M] [-T addr] [-e sym] -o out file.o ... [-l lib.o ...]\n");
 		return 1;
 	}
+	if (lib_clashes()) return 1;
+	select_lib();
 	pos = text_addr;
 	for (i = 0; i < nobjs; i++) {
 		pos = align(pos, 4);

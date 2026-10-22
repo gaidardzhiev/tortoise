@@ -1,0 +1,105 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/nstest
+ok   rfork RFNAMEG in the caller
+ok   bind -a makes a union
+ok   lookup finds a name of the first member
+ok   lookup finds a name of the second member
+ok   the first member wins for a name in both
+union listing: . .. onlya common onlyb
+ok   readdir lists the union without duplicates
+ok   create without MCREATE fails with EROFS
+ok   mkdir without MCREATE fails with EROFS
+ok   a child shares the namespace
+ok   binding a file over a file in a private copy
+ok   the parent does not see the child's bind
+ok   rfork RFPROC|RFNAMEG: the child's unmount stays private
+ok   unmount of one member
+ok   its names are gone
+ok   bind -b puts a member first
+ok   unmount of the whole entry
+ok   unmount of a path that is not bound fails
+ok   bind -bc allows create
+ok   create goes to the MCREATE member
+ok   bind replaces a directory
+ok   bind of a file over a directory fails
+ok   bind of a directory over a file fails
+ok   bind a directory deeper in the tree
+ok   chdir into the bound directory
+ok   its files are b's
+ok   /proc/self/cwd names the bound path
+ok   rmdir of a bind point fails with EBUSY
+ok   fd2path names the namespace path
+ok   fd2path with a small buffer fails
+ok   .. leaves the bind the way it came
+ok   a path through the bind and .. too
+ok   RFCNAMEG: only the root, no /dev, cwd is /
+ok   the caller still has /dev
+root::0:0:root:/root:/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+bind /nst/fakepw /etc/passwd
+mount -t dev dev /dev
+mount -t proc proc /proc
+mount -t ramfs ramfs /tmp
+bind -c '#e' /env
+bind -c '#s' /srv
+bind '#I' /net
+bind -a '#l' /net
+/nst
+ok   a user's bind is not seen by set user id programs
+nstest: all ok
+$ mkdir /nsu /nsv /nsw
+$ echo one > /nsu/f
+$ echo two > /nsv/g
+$ rfork n
+$ bind -a /nsv /nsu
+$ ls /nsu
+f
+g
+$ bind -bc /nsw /nsu
+$ echo new > /nsu/h
+$ ls /nsw
+h
+$ bind /etc/motd /etc/hosts
+$ cat /etc/hosts
+Welcome to TORTOISE.
+$ ns
+mount -t dev dev /dev
+mount -t proc proc /proc
+mount -t ramfs ramfs /tmp
+bind -c '#e' /env
+bind -c '#s' /srv
+bind '#I' /net
+bind -a '#l' /net
+bind -bc /nsw /nsu
+bind -a /nsv /nsu
+bind /etc/motd /etc/hosts
+$ ns > /ns1.txt
+$ unmount /nsv /nsu
+$ ls /nsu
+h
+f
+$ unmount /nsu
+$ ls /nsu
+f
+$ rfork N
+$ ls /dev
+$ cat /etc/hosts
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+127.0.0.1 localhost loopback
+$ sh /ns1.txt
+$ ns > /ns2.txt
+$ test "$(cat /ns1.txt)" = "$(cat /ns2.txt)" && echo same text
+same text
+$ ls /nsu
+h
+f
+g
+$ cat /etc/hosts
+Welcome to TORTOISE.
+$ cd /tmp
+$ pwd
+/tmp
+$ shutdown 0

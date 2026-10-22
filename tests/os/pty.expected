@@ -1,0 +1,21 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/ptytest
+ok   open /dev/ptmx
+ok   TIOCGPTN gives the number
+ok   open the slave
+ok   the slave is a terminal
+ok   the slave is character device 136,0
+ok   /dev/ptmx is 5,2
+ok   a second pair is number 1
+ok   /dev/pts lists both
+ok   writing to the master is input for the slave
+ok   the slave echoes to the master
+ok   writing to the slave is output for the master
+ok   raw mode: bytes pass at once without echo
+ok   nothing was echoed
+ok   after the master closes the slave reads end of file
+ok   and writes fail with EIO
+ok   the pair is gone
+ptytest: all ok
+$ shutdown 0

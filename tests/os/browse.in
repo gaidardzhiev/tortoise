@@ -1,0 +1,24 @@
+httpd -p 80 /var/www &
+sleep -t 20
+browse -dump http://localhost/index.html
+browse -dump -width 40 http://localhost/sub/third.html
+browse -dump http://localhost/hostile.html
+browse -dump http://localhost/hostile.html | od -c | grep -c 033
+browse -dump file:/var/www/plain.txt
+browse -dump file:/var/www/sub
+nc -l 8081 < /var/www/redirect.http > /dev/null &
+sleep -t 10
+browse -dump http://localhost:8081/
+nc -l 8082 < /var/www/binary.http > /dev/null &
+sleep -t 10
+browse -dump http://localhost:8082/
+browse -dump http://localhost/missing.html
+browse -dump https://secure.example/
+browse -dump http://nosuchhost/
+browse -dump http://localhost:9/
+browse http://localhost/index.html
+[B[D2q
+browse http://localhost/hostile.html
+2/broken?q
+kill %1; wait
+shutdown 0

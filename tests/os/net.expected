@@ -1,0 +1,119 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ hostname
+turtle
+$ ifconfig
+lo: flags=UP,LOOPBACK,RUNNING
+	inet 127.0.0.1 netmask 255.0.0.0
+	rx 0 tx 0 drops 0
+eth0: flags=UP,RUNNING
+	inet 10.0.0.1 netmask 255.255.255.0
+	ether 02:00:00:00:00:01
+	rx 0 tx 1 drops 0
+$ route
+Destination     Netmask         Gateway         Iface
+127.0.0.0       255.0.0.0       0.0.0.0         lo
+10.0.0.0        255.255.255.0   0.0.0.0         eth0
+$ ping -c 3 127.0.0.1 | cut -d " " -f 1-5
+PING 127.0.0.1 (127.0.0.1): 56 data
+64 bytes from 127.0.0.1: icmp_seq=1
+64 bytes from 127.0.0.1: icmp_seq=2
+64 bytes from 127.0.0.1: icmp_seq=3
+--- 127.0.0.1 ping statistics ---
+3 packets transmitted, 3 received,
+$ ping -c 2 10.0.0.1 | cut -d " " -f 1-5
+PING 10.0.0.1 (10.0.0.1): 56 data
+64 bytes from 10.0.0.1: icmp_seq=1
+64 bytes from 10.0.0.1: icmp_seq=2
+--- 10.0.0.1 ping statistics ---
+2 packets transmitted, 2 received,
+$ nc -l 9000 < /dev/null > /tmp/tcp.txt &
+[13]
+$ sleep -t 10
+$ echo hello over tcp | nc 127.0.0.1 9000
+[1]+ Done nc -l 9000 < /dev/null > /tmp/tcp.txt
+$ sleep -t 10
+$ cat /tmp/tcp.txt
+hello over tcp
+$ nc -u -l 9001 < /dev/null > /tmp/udp.txt &
+[19]
+$ sleep -t 10
+$ echo hello over udp | nc -u 127.0.0.1 9001
+$ sleep -t 10
+$ kill %nc; sleep -t 5
+[1]+ Terminated nc -u -l 9001 < /dev/null > /tmp/udp.txt
+$ cat /tmp/udp.txt
+hello over udp
+$ nc 127.0.0.1 1
+nc: Connection refused
+$ httpd -p 8080 /var/www &
+[27]
+$ sleep -t 10
+$ tget http://127.0.0.1:8080/hello.txt
+hello from httpd
+$ tget http://localhost:8080/
+<html><body>Welcome to the turtle web.</body></html>
+$ tget http://127.0.0.1:8080/sub
+<html><body><h1>Index of /sub</h1><ul>
+<li><a href="/sub/..">..</a></li>
+<li><a href="/sub/file.txt">file.txt</a></li>
+</ul></body></html>
+$ tget http://127.0.0.1:8080/missing.html
+tget: HTTP/1.0 404 Not Found
+$ tget http://127.0.0.1:8080/../etc/passwd
+tget: HTTP/1.0 403 Forbidden
+$ nc 127.0.0.1 8080 < /etc/head.req
+HTTP/1.0 200 OK
+Server: tortoise-httpd
+Content-Type: text/plain
+Content-Length: 17
+
+$ tget -o /tmp/got.txt http://127.0.0.1:8080/hello.txt
+$ cat /tmp/got.txt
+hello from httpd
+$ telnetd -p 2323 -l /bin/sh &
+[37]
+$ sleep -t 10
+$ telnet 127.0.0.1 2323 < /etc/telnet.in
+Connected to 127.0.0.1.
+echo on the remote side
+pwd
+exit
+$ on the remote side
+$ /
+$ Connection closed.
+$ sleep -t 500 | nc -l 9100 > /dev/null &
+[44]
+$ sleep -t 10
+$ sleep -t 500 | nc 127.0.0.1 9100 > /dev/null &
+[47]
+$ sleep -t 20
+$ netstat -t
+Proto Recv-Q Send-Q Local Address         Foreign Address       State
+tcp        0      0 127.0.0.1:49163       127.0.0.1:9100        ESTABLISHED
+tcp        0      0 127.0.0.1:9100        127.0.0.1:49163       ESTABLISHED
+$ netstat -t -a
+Proto Recv-Q Send-Q Local Address         Foreign Address       State
+tcp        0      0 0.0.0.0:8080          0.0.0.0:0             LISTEN
+tcp        0      0 0.0.0.0:2323          0.0.0.0:0             LISTEN
+tcp        0      0 127.0.0.1:49163       127.0.0.1:9100        ESTABLISHED
+tcp        0      0 127.0.0.1:9100        127.0.0.1:49163       ESTABLISHED
+$ netstat -u -a
+Proto Recv-Q Send-Q Local Address         Foreign Address       State
+$ nc -u -l 9200 < /dev/null > /tmp/bcast.txt &
+[52]
+$ sleep -t 10
+[3]  Done sleep -t 500 | nc -l 9100 > /dev/null
+[4]- Done sleep -t 500 | nc 127.0.0.1 9100 > /dev/null
+$ echo broadcast on eth0 | nc -u 255.255.255.255 9200
+$ sleep -t 10
+$ cat /tmp/bcast.txt
+broadcast on eth0
+$ ifconfig eth0
+eth0: flags=UP,RUNNING
+	inet 10.0.0.1 netmask 255.255.255.0
+	ether 02:00:00:00:00:01
+	rx 1 tx 2 drops 0
+$ arp
+Address         HWaddress         Iface
+$ shutdown 0

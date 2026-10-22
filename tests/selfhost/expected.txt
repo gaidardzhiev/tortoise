@@ -4,7 +4,7 @@ $ mkdir /home
 $ cd /home
 $ tcc0 /src/hello.c -o hello
 $ ls -l
--  31831 hello
+-  45291 hello
 $ ./hello a b
 hello, TORTOISE 9
 hello, TORTOISE 16

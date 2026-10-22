@@ -1,0 +1,191 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ cat /etc/words
+apple
+banana
+cherry
+date
+elderberry
+fig
+grape
+$ cat -n /etc/words
+     1	apple
+     2	banana
+     3	cherry
+     4	date
+     5	elderberry
+     6	fig
+     7	grape
+$ echo -n no newline; echo
+no newline
+$ echo with newline
+with newline
+$ head -n 2 /etc/words
+apple
+banana
+$ head -3 /etc/words
+apple
+banana
+cherry
+$ tail -n 2 /etc/words
+fig
+grape
+$ tail -1 /etc/words
+grape
+$ grep an /etc/words
+banana
+$ grep -v an /etc/words
+apple
+cherry
+date
+elderberry
+fig
+grape
+$ grep -i APPLE /etc/words
+apple
+$ grep -c a /etc/words
+4
+$ grep -n ^b /etc/words
+2:banana
+$ grep 'e$' /etc/words
+apple
+date
+grape
+$ grep 'b.n' /etc/words
+banana
+$ grep 'ch*e' /etc/words
+cherry
+$ grep '[pq]' /etc/words
+apple
+grape
+$ grep '^[^abc]' /etc/words
+date
+elderberry
+fig
+grape
+$ grep nothing /etc/words; echo grep status $?
+grep status 1
+$ sort /etc/words
+apple
+banana
+cherry
+date
+elderberry
+fig
+grape
+$ sort -r /etc/words
+grape
+fig
+elderberry
+date
+cherry
+banana
+apple
+$ sort -n /etc/numbers
+-3
+9
+10
+42
+100
+$ sort -n -r /etc/numbers
+100
+42
+10
+9
+-3
+$ sort -u /etc/dups
+a
+b
+c
+$ uniq /etc/dups
+a
+b
+a
+c
+$ uniq -c /etc/dups
+      2 a
+      1 b
+      1 a
+      2 c
+$ sort /etc/dups | uniq -c
+      3 a
+      1 b
+      2 c
+$ echo hello world | tr a-z A-Z
+HELLO WORLD
+$ echo hello world | tr -d lo
+he wrd
+$ echo a:b:c:d | cut -d : -f 2,4
+b:d
+$ echo a:b:c:d | cut -d : -f 3-
+c:d
+$ echo abcdefgh | cut -c 2-4,7
+bcdg
+$ echo tee line | tee /tmp/t1.txt
+tee line
+$ echo second | tee -a /tmp/t1.txt > /dev/null
+$ cat /tmp/t1.txt
+tee line
+second
+$ wc /etc/words
+7 7 46 /etc/words
+$ wc -l /etc/words
+7 /etc/words
+$ wc -w -c /etc/words
+7 46 /etc/words
+$ echo AB | od -c
+0000000   A   B  \n
+0000003
+$ echo AB | od -x
+0000000 4241 000a
+0000003
+$ echo AB | od
+0000000 041101 000012
+0000003
+$ echo 1 2 3 4 5 | xargs echo items:
+items: 1 2 3 4 5
+$ echo 1 2 3 4 5 | xargs -n 2 echo pair
+pair 1 2
+pair 3 4
+pair 5
+$ cat /etc/words /etc/words /etc/words /etc/words /etc/words | more
+apple
+banana
+cherry
+date
+elderberry
+fig
+grape
+apple
+banana
+cherry
+date
+elderberry
+fig
+grape
+apple
+banana
+cherry
+date
+elderberry
+fig
+grape
+apple
+banana
+cherry
+--More--        $ 
+$ echo end of more
+end of more
+$ echo grown > /tmp/tailf.txt
+$ tail -f /tmp/tailf.txt > /tmp/tailout.txt &
+[70]
+$ sleep -t 30
+$ echo added >> /tmp/tailf.txt
+$ sleep -t 50
+$ kill %1
+$ sleep -t 5
+[1]+ Terminated tail -f /tmp/tailf.txt > /tmp/tailout.txt
+$ cat /tmp/tailout.txt
+grown
+added
+$ shutdown 0

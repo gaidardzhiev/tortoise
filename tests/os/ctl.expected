@@ -1,0 +1,117 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/ctltest
+ok   rfork RFNAMEG
+ok   bind #c
+ok   #c lists like /dev
+ok   #c/null reads end of file
+ok   #c/zero gives zeros
+ok   bind -a #p /proc
+/proc/1: . .. status cmdline environ cwd exe maps fd ns ctl note notepg fdtab args
+ok   a union with itself lists every name once
+ok   #p/1/status reads
+ok   bind #D
+#D: . .. disk0 disk1
+ok   #D/disk0 is /dev/disk0
+ok   bind #l
+#l/ether0: . .. ctl clone
+#l/ether0/ctl: 020000000001
+ok   bind #I
+#I: . .. ipifc iproute arp cs tcp udp icmp
+#I/ipifc/0/ctl: lo 127.0.0.1 255.0.0.0 up
+ok   #I/iproute equals /proc/net/route
+/net: . .. ipifc iproute arp cs tcp udp icmp ether0
+ok   bind #|
+#|: . .. data data1
+ok   both ends open
+ok   data to data1
+ok   data1 to data
+ok   fd2path names the end
+ok   data1 reads end of file when data is closed
+ok   writing then fails with EPIPE
+ok   #|/data opened alone has no other end
+ok   an unknown device fails
+#x: errno 2, errstr unknown device '#x/foo'
+ok   errstr without a kernel message gives strerror
+ok   errstr swaps the strings
+ok   consctl: rawon clears ICANON and ECHO
+ok   consctl: rawoff sets them
+ok   consctl: echo off
+ok   consctl: echo on
+ok   consctl: isig off
+ok   consctl: isig on
+ok   consctl: vmin 3
+ok   consctl: vtime 7
+ok   consctl: an unknown command fails
+consctl: errno 22, errstr unknown control message 'bogus'
+ok   consctl: a bad number fails
+consctl: errno 22, errstr bad number in control message 'vmin x'
+ok   pts ctl: rawon clears ICANON and ECHO
+ok   pts ctl: rawoff sets them
+ok   pts ctl: echo off
+ok   pts ctl: echo on
+ok   pts ctl: isig off
+ok   pts ctl: isig on
+ok   pts ctl: vmin 3
+ok   pts ctl: vtime 7
+ok   pts ctl: an unknown command fails
+pts ctl: errno 22, errstr unknown control message 'bogus'
+ok   pts ctl: a bad number fails
+pts ctl: errno 22, errstr bad number in control message 'vmin x'
+ok   note interrupt is SIGINT
+ok   note hangup is SIGHUP
+ok   notepg with another note is SIGTERM to the group
+ok   ctl nice 5
+ok   the status shows it
+ok   ctl: an unknown command fails
+ctl: errno 22, errstr unknown control message 'explode'
+ok   ctl kill
+fdtab of the child:
+0 rw 0 /dev/console
+1 rw 0 /dev/console
+2 rw 0 /dev/console
+3 r 0 pipe:[5]
+4 w 0 pipe:[5]
+ok   ctl close 0
+ok   descriptor 0 is gone
+ok   ctl close of a closed descriptor fails
+ok   ctl hang stops the process at exec
+args: echo after the hang
+after the hang
+ok   ctl start lets it run
+ok   ctl of init: kill is ignored by init
+ctltest: all ok
+$ sleep 100 &
+[11]
+$ echo stop > /proc/$!/ctl
+$ ps | grep ' sleep$'
+   11     3 stop   sleep
+[1]+ Stopped sleep 100
+$ echo start > /proc/$!/ctl
+$ ps | grep ' sleep$'
+   11     3 sleep  sleep
+$ echo kill > /proc/$!/ctl; wait
+$ rfork n
+$ bind '#c' /dev
+$ bind -a '#p' /proc
+$ ls /dev | head -4
+console
+tty
+null
+zero
+$ ls '#D'
+disk0
+disk1
+$ cat '#I/ipifc/0/ctl'
+lo 127.0.0.1 255.0.0.0 up
+$ ns | grep net
+bind '#I' /net
+bind -a '#l' /net
+$ cat /proc/self/args
+cat /proc/self/args
+$ cat /proc/self/fdtab
+0 rw 0 /dev/console
+1 rw 0 /dev/console
+2 rw 0 /dev/console
+3 r 0 /proc/28/fdtab
+$ shutdown 0

@@ -1,15 +1,23 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "kernel.h"
 
 #define VHASH 256
-#define MAXPATH 512
 
 Vnode *rootvn;
 Fs *mounts;
 static Vnode *vtab[VHASH];
-static unsigned boot_time;
+static unsigned boot_time, boot_count;
+
+unsigned uptime_ms(void) {
+	return rd(TIMER_COUNT) - boot_count;
+}
 
 unsigned vfs_now(void) {
-	return boot_time + ticks / 100;
+	return boot_time + uptime_ms() / 1000;
 }
 
 Vnode *vget(Fs *fs, unsigned ino, int type) {
@@ -29,6 +37,13 @@ Vnode *vget(Fs *fs, unsigned ino, int type) {
 	v->hnext = vtab[h];
 	vtab[h] = v;
 	return v;
+}
+
+Vnode *vpeek(Fs *fs, unsigned ino) {
+	Vnode *v;
+	for (v = vtab[((unsigned)fs / 16 + ino) % VHASH]; v; v = v->hnext)
+		if (v->fs == fs && v->ino == ino) return v;
+	return NULL;
 }
 
 Vnode *vref(Vnode *v) {
@@ -61,123 +76,6 @@ int vfs_read(Vnode *v, char *buf, unsigned off, unsigned n) {
 	return v->fs->ops->read(v, buf, off, n, NULL);
 }
 
-static int namex(const char *path, Vnode *cwd, int follow, int parent, Vnode **out, char *name) {
-	static char bufs[2][MAXPATH];
-	static int depth;
-	char *buf, comp[28];
-	char *p;
-	int links = 0, r = 0;
-	Vnode *cur;
-	if (!path[0]) return -ENOENT;
-	if (strlen(path) >= MAXPATH) return -ENAMETOOLONG;
-	if (depth >= 2) return -ELOOP;
-	buf = bufs[depth++];
-	strncpy(buf, path, MAXPATH);
-	p = buf;
-	cur = vref(*p == '/' || !cwd ? rootvn : cwd);
-	for (;;) {
-		Vnode *next;
-		int k = 0, last;
-		while (*p == '/') p++;
-		if (!*p) {
-			if (parent) {
-				r = -EINVAL;
-				break;
-			}
-			*out = cur;
-			depth--;
-			return 0;
-		}
-		while (*p && *p != '/') {
-			if (k >= 27) {
-				r = -ENAMETOOLONG;
-				break;
-			}
-			comp[k++] = *p++;
-		}
-		if (r) break;
-		comp[k] = 0;
-		while (*p == '/') p++;
-		last = *p == 0;
-		if (cur->type != VT_DIR) {
-			r = -ENOTDIR;
-			break;
-		}
-		if (curproc && (r = vfs_access(cur, 1)) != 0) break;
-		if (last && parent) {
-			strncpy(name, comp, 28);
-			*out = cur;
-			depth--;
-			return 0;
-		}
-		if (!strcmp(comp, ".")) continue;
-		if (!strcmp(comp, "..")) {
-			while (cur == cur->fs->root && cur->fs->covered) {
-				Vnode *c = vref(cur->fs->covered);
-				vput(cur);
-				cur = c;
-			}
-			if (cur == rootvn) continue;
-		}
-		r = cur->fs->ops->lookup(cur, comp, &next);
-		if (r) break;
-		while (next->mounted) {
-			Vnode *m = vref(next->mounted->root);
-			vput(next);
-			next = m;
-		}
-		if (next->type == VT_LNK && (!last || follow)) {
-			char tgt[256];
-			int n;
-			if (++links > 8) {
-				vput(next);
-				r = -ELOOP;
-				break;
-			}
-			n = next->fs->ops->readlink(next, tgt, 255);
-			vput(next);
-			if (n <= 0) {
-				r = -ENOENT;
-				break;
-			}
-			tgt[n] = 0;
-			if (strlen(tgt) + strlen(p) + 2 >= MAXPATH) {
-				r = -ENAMETOOLONG;
-				break;
-			}
-			{
-				char rest[MAXPATH];
-				strncpy(rest, p, MAXPATH);
-				strncpy(buf, tgt, MAXPATH);
-				if (rest[0]) {
-					unsigned l = strlen(buf);
-					buf[l] = '/';
-					strncpy(buf + l + 1, rest, MAXPATH - l - 1);
-				}
-			}
-			p = buf;
-			if (tgt[0] == '/') {
-				vput(cur);
-				cur = vref(rootvn);
-			}
-			continue;
-		}
-		vput(cur);
-		cur = next;
-	}
-	vput(cur);
-	depth--;
-	return r;
-}
-
-int vfs_resolve(const char *path, Vnode *cwd, int follow, Vnode **out) {
-	return namex(path, cwd, follow, 0, out, NULL);
-}
-
-int vfs_parent(const char *path, Vnode *cwd, Vnode **dir, char *name) {
-	return namex(path, cwd, 1, 1, dir, name);
-}
-
 static Vnode *cwdv(void) {
 	return curproc ? curproc->cwd : rootvn;
 }
@@ -188,7 +86,8 @@ int vfs_mount_fs(Fs *fs, Vnode *target, const char *source, const char *tpath, c
 	strncpy(fs->fstype, fstype, 7);
 	if (target) {
 		fs->covered = vref(target);
-		target->mounted = fs;
+		if (!target->mounted) target->mounted = fs;
+		ns_add(ns_current(), target, tpath, fs->root, source, MFS | MCREATE);
 	}
 	fs->next = mounts;
 	mounts = fs;
@@ -198,18 +97,27 @@ int vfs_mount_fs(Fs *fs, Vnode *target, const char *source, const char *tpath, c
 int vfs_mount(const char *source, const char *target, const char *fstype) {
 	Vnode *t;
 	Fs *fs;
-	int r = vfs_resolve(target, cwdv(), 1, &t);
-	if (r) return r;
+	Walk *w = kmalloc(sizeof(Walk));
+	int r = w ? vfs_walk(target, WFOLLOW | WNOMNT, w) : -ENOMEM;
+	if (r) {
+		kfree(w);
+		return r;
+	}
+	t = w->key;
+	vput(w->v);
 	if (t->type != VT_DIR) {
+		kfree(w);
 		vput(t);
 		return -ENOTDIR;
 	}
-	if (t->mounted) {
+	if (ns_is_mountpoint(t)) {
+		kfree(w);
 		vput(t);
 		return -EBUSY;
 	}
 	fs = kmalloc(sizeof(Fs));
 	if (!fs) {
+		kfree(w);
 		vput(t);
 		return -ENOMEM;
 	}
@@ -227,24 +135,18 @@ int vfs_mount(const char *source, const char *target, const char *fstype) {
 	else if (!strcmp(fstype, "proc")) r = procfs_mount(fs);
 	else r = -ENODEV;
 	if (r) {
+		kfree(w);
 		kfree(fs);
 		vput(t);
 		return r;
 	}
 	{
 		char abs[128];
-		if (target[0] == '/') strncpy(abs, target, 127);
-		else {
-			int n = sys_getcwd_k(abs, 120);
-			if (n < 0) strncpy(abs, target, 127);
-			else {
-				if (strcmp(abs, "/")) strncpy(abs + strlen(abs), "/", 2);
-				strncpy(abs + strlen(abs), target, 127 - strlen(abs));
-			}
-		}
+		strncpy(abs, w->path, 127);
 		abs[127] = 0;
 		vfs_mount_fs(fs, t, source, abs, fstype);
 	}
+	kfree(w);
 	vput(t);
 	return 0;
 }
@@ -254,7 +156,7 @@ static int fs_busy(Fs *fs) {
 	Vnode *v;
 	for (i = 0; i < VHASH; i++)
 		for (v = vtab[i]; v; v = v->hnext)
-			if (v->fs == fs && v->ref > (v == fs->root ? 2 : 0)) return 1;
+			if (v->fs == fs && v->ref > (v == fs->root ? 2 + (v == rootvn) : 0) + ns_fs_refs(fs, v)) return 1;
 	return 0;
 }
 
@@ -264,7 +166,7 @@ int vfs_umount(const char *target) {
 	int r = vfs_resolve(target, cwdv(), 1, &t);
 	if (r) return r;
 	fs = t->fs;
-	if (t != fs->root || !fs->covered) {
+	if (t != fs->root || !fs->covered || ns_remove_fs_member(ns_current(), fs->covered, t)) {
 		vput(t);
 		return -EINVAL;
 	}
@@ -273,7 +175,8 @@ int vfs_umount(const char *target) {
 		return -EBUSY;
 	}
 	vput(t);
-	fs->covered->mounted = NULL;
+	ns_drop_fs(fs);
+	if (fs->covered->mounted == fs) fs->covered->mounted = NULL;
 	vput(fs->covered);
 	vput(fs->root);
 	for (pp = &mounts; *pp; pp = &(*pp)->next)
@@ -302,6 +205,7 @@ void vfs_init(void) {
 	static const char *dirs[3] = {"/dev", "/proc", "/tmp"};
 	static const char *types[3] = {"dev", "proc", "ramfs"};
 	boot_time = rd(RTC_SECONDS);
+	boot_count = rd(TIMER_COUNT);
 	if (!fs || tfs_mount(fs, 0)) panic("cannot mount the root file system");
 	rootvn = vref(fs->root);
 	vfs_mount_fs(fs, NULL, "/dev/disk0", "/", "tfs");
@@ -316,11 +220,40 @@ void vfs_init(void) {
 		vfs_mount_fs(f2, t, types[i], dirs[i], types[i]);
 		vput(t);
 	}
+	dev9_init();
+	srv_init();
+	env_init();
+	ensure_dir("/net", 0555);
+	ensure_dir("/srv", 0777);
+	ensure_dir("/env", 0777);
+	{
+		Vnode *s = env_root(), *ev;
+		if (vfs_resolve("/env", rootvn, 1, &ev)) panic("cannot prepare /env");
+		ns_add(ns_boot(), ev, "/env", s, "#e", MREPLACE | MCREATE);
+		vput(s);
+		vput(ev);
+	}
+	{
+		Vnode *s = srv_root(), *sv;
+		if (vfs_resolve("/srv", rootvn, 1, &sv)) panic("cannot prepare /srv");
+		ns_add(ns_boot(), sv, "/srv", s, "#s", MREPLACE | MCREATE);
+		vput(s);
+		vput(sv);
+	}
+	{
+		Vnode *t, *a = dev9_root('I'), *b = dev9_root('l');
+		if (vfs_resolve("/net", rootvn, 1, &t)) panic("cannot prepare /net");
+		ns_add(ns_boot(), t, "/net", a, "#I", MREPLACE);
+		ns_add(ns_boot(), t, "/net", b, "#l", MAFTER);
+		vput(a);
+		vput(b);
+		vput(t);
+	}
 }
 
-int sys_getcwd_k(char *out, unsigned size) {
+int vnode_path(Vnode *start, char *out, unsigned size) {
 	char path[MAXPATH], tmp[MAXPATH];
-	Vnode *v = vref(cwdv());
+	Vnode *v = vref(start);
 	path[0] = 0;
 	while (v != rootvn) {
 		Vnode *parent, *c;
@@ -377,6 +310,15 @@ int sys_getcwd_k(char *out, unsigned size) {
 	if (strlen(path) + 1 > size) return -ERANGE;
 	strncpy(out, path, size);
 	return (int)strlen(path) + 1;
+}
+
+int sys_getcwd_k(char *out, unsigned size) {
+	unsigned l;
+	if (!curproc || !curproc->cwdpath[0]) return vnode_path(cwdv(), out, size);
+	l = strlen(curproc->cwdpath) + 1;
+	if (l > size) return -ERANGE;
+	memcpy(out, curproc->cwdpath, l);
+	return (int)l;
 }
 
 int vfs_access(Vnode *v, int want) {

@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include "check.h"
 #include "preproc_inc.h"
 #include "preproc_inc.h"
@@ -69,7 +74,7 @@ int main(void) {
 	CHECK(F(5) == 11);
 	CHECK(big && ten && arith_ok);
 	CHECK(inc_func(1) == 1235);
-	CHECK(__LINE__ == 72);
+	CHECK(__LINE__ == 77);
 	CHECK(strstr(__FILE__, "preproc.c") != NULL);
 	EMPTY;
 	DONE();

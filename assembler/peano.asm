@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 ; peano.asm
 ;
 ; proves the predecessor axiom of Peano arithmetic on TORTOISE:

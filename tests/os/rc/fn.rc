@@ -1,0 +1,19 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+fn greet {
+	echo hello $1, you gave $#* words: $*
+}
+greet world a b
+fn count { echo $#* }
+count (a b c) d
+whatis greet
+x=(a 'b c')
+whatis x
+whatis cd
+whatis ls
+fn greet
+whatis greet
+. /rc/lib.rc first second
+echo from lib: $libvar
+echo $0

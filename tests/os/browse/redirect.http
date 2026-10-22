@@ -1,0 +1,4 @@
+HTTP/1.0 302 Found
+Location: http://localhost/second.html
+Content-Length: 0
+

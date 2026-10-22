@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Ivan Gaydardzhiev
+ * Licensed under the GPL-3.0-only
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,14 +33,14 @@ int main(int argc, char **argv) {
 	if (argc > 1 && argv[1][0] == '-' && argv[1][1]) {
 		sig = signum(argv[1] + 1);
 		if (sig < 0 || sig >= 32) {
-			printf("kill: bad signal %s\n", argv[1] + 1);
+			fprintf(stderr, "kill: bad signal %s\n", argv[1] + 1);
 			return 1;
 		}
 		i = 2;
 	}
 	for (; i < argc; i++)
 		if (kill(atoi(argv[i]), sig) < 0) {
-			printf("kill: no process %s\n", argv[i]);
+			fprintf(stderr, "kill: no process %s\n", argv[i]);
 			rc = 1;
 		}
 	return rc;

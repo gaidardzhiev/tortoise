@@ -1,0 +1,29 @@
+/test/p9test
+rfork n
+mkdir -p /n/m /n/i /work
+ramfs9 -s r9
+ls /srv
+mount -c /srv/r9 /n/m
+echo through srv > /n/m/f
+cat /n/m/f
+ns | grep r9
+exportfs -l &
+sleep -t 20
+import 127.0.0.1 /etc /n/i
+cat /n/i/motd
+ls /n/i | head -3
+unmount /n/i
+kill %1; wait
+ns > /ns1
+rfork N
+ls /srv
+sh /ns1
+ns > /ns2
+test "$(cat /ns1)" = "$(cat /ns2)" && echo same text
+cat /n/m/f
+rm /srv/r9
+ls /srv
+cat /n/m/f
+ramfs9 -m /work
+/test/fstest
+shutdown 0

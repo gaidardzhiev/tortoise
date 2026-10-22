@@ -1,0 +1,19 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+echo to a file > /tmp/rc.out
+echo appended >> /tmp/rc.out
+cat /tmp/rc.out
+cat < /tmp/rc.out | wc -l
+ls /nonexistent >[2] /tmp/rc.err
+echo status $status
+cat /tmp/rc.err
+ls /nonexistent >[2=1] | wc -l
+ls /nonexistent |[2] wc -l
+cat <{echo from process substitution}
+{ echo block one; echo block two } > /tmp/rc.blk
+cat /tmp/rc.blk
+echo closed >[1=]
+sleep 1 &
+wait $apid
+echo waited

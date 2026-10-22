@@ -1,0 +1,91 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ ls /proc/self
+status
+cmdline
+environ
+cwd
+exe
+maps
+fd
+ns
+ctl
+note
+notepg
+fdtab
+args
+$ /test/procfstest
+--- /proc/6/status
+Name:	procchild
+State:	S
+Pid:	(varies)
+PPid:	(varies)
+Pgid:	(varies)
+Sid:	(varies)
+Uid:	0	0
+Gid:	0	0
+Nice:	3
+VmSize:	(varies)
+VmRSS:	(varies)
+Utime:	(varies)
+Stime:	(varies)
+SigPnd:	00001000
+SigBlk:	00001000
+SigIgn:	00000404
+ok   Pid
+ok   PPid
+ok   Pgid is its own
+ok   Sid is ours
+ok   VmSize counts the regions
+ok   VmRSS is smaller
+--- /proc/6/cmdline
+procchild|alpha|two words|
+--- /proc/6/environ
+A=1|B=two|
+ok   environ is mode 0400
+--- /proc/6/maps
+(varies) rwxp text
+(varies) rw-p data
+(varies) rw-p heap
+5FFFD000-5FFFE000 r--p mmap
+5FFFE000-60000000 rw-s mmap
+7FEFF000-7FFFF000 rw-p stack
+/proc/6/cwd -> /tmp
+/proc/6/exe -> /test/procchild
+/proc/6/fd/0 -> /dev/console
+/proc/6/fd/1 -> pipe:[id]
+/proc/6/fd/2 -> /dev/console
+/proc/6/fd/3 -> pipe:[id]
+/proc/6/fd/4 -> pipe:[id]
+/proc/6/fd/7 -> /etc/motd
+ok   a closed descriptor is missing
+ok   stopped is T
+ok   dead and not waited for is Z
+ok   after wait it is gone
+ok   running is R
+ok   /proc/self names us
+--- /proc/mounts
+/dev/disk0 / tfs
+dev /dev dev
+proc /proc proc
+ramfs /tmp ramfs
+--- /proc/cpuinfo
+cpuid: 2
+ram: 33554432
+ticks_per_second: 100
+ok   version
+ok   meminfo has four lines
+ok   free memory is less than total
+ok   uptime is ticks and seconds
+ok   loadavg: at least we run
+ok   loadavg: total matches /proc
+ok   loadavg: last pid
+ok   missing pid
+ok   /proc files cannot be written
+procfstest: all ok
+$ ps
+  PID  PPID STATE  NAME
+    1     0 sleep  init
+    3     1 sleep  sh
+    7     3 run    ps
+$ shutdown 0

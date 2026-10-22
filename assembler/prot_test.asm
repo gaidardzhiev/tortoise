@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 .include "ext_inc.asm"
 CLI
 LOAD32 R0, EVT

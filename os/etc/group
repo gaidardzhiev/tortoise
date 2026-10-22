@@ -1,0 +1,7 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+root:x:0:root
+wheel:x:10:root
+users:x:100:user
+none:x:65534:

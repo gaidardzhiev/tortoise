@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -81,6 +81,7 @@ int emu_main(Opts *o) {
 		fprintf(stderr, "cannot open disk image %s\n", o->disk2);
 		return EXIT_FATAL;
 	}
+	if ((o->net || o->mac || o->pcap) && net_config(o->net, o->mac, o->pcap)) return EXIT_FATAL;
 	if (o->input) {
 		if (uart_set_input(o->input)) {
 			fprintf(stderr, "cannot open input file %s\n", o->input);

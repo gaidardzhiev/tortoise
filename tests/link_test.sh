@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
 d=tests/link
 ./as -c $d/a.s -o $d/a.tmp.o > /dev/null || exit 1
 ./as -c $d/b.s -o $d/b.tmp.o > /dev/null || exit 1

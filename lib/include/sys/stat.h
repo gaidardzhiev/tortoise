@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Ivan Gaydardzhiev
+ * Copyright (C) 2026 Ivan Gaydardzhiev
  * Licensed under the GPL-3.0-only
  */
 
@@ -39,6 +39,6 @@ int lstat(const char *path, struct stat *st);
 int fstat(int fd, struct stat *st);
 int chmod(const char *path, unsigned mode);
 int fchmod(int fd, unsigned mode);
-int mkdir(const char *path, ...);
+int mkdir(const char *path, unsigned mode);
 unsigned umask(unsigned mask);
 #endif

@@ -1,3 +1,6 @@
+; Copyright (C) 2026 Ivan Gaydardzhiev
+; Licensed under the GPL-3.0-only
+
 .equ EVT, 0x1000
 .equ SYS, 0xF0007000
 .equ PIC, 0xF0000000

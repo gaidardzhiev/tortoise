@@ -1,0 +1,24 @@
+sh /test/sh/vars.sh
+sh /test/sh/quotes.sh
+sh /test/sh/control.sh
+sh /test/sh/funcs.sh
+sh /test/sh/redir.sh
+sh /test/sh/builtins.sh
+sh /test/sh/glob.sh
+sh /test/sh/script.sh a b
+echo script status $?
+cat
+abcjobs
+fg
+resumed
+sleep -t 300 &
+sleep -t 3000 &
+jobs
+kill %2
+cat & sleep -t 20
+jobs
+kill %cat; sleep -t 20
+fg %1
+jobs
+echo $(echo the end)
+shutdown 0

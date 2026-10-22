@@ -1,0 +1,31 @@
+# Copyright (C) 2026 Ivan Gaydardzhiev
+# Licensed under the GPL-3.0-only
+
+if (~ abc a*) echo matched a*
+if (~ abc x*) echo wrong
+if not echo if not runs
+for (i in 1 2 3) echo loop $i
+n=()
+while (! ~ $#n 3) {
+	n=($n x)
+	echo while $#n
+}
+for (f in apple kiwi plum) {
+	switch ($f) {
+	case a*
+		echo $f starts with a
+	case kiwi plum
+		echo $f is kiwi or plum
+	case *
+		echo never
+	}
+}
+true && echo and ran
+false && echo never
+false || echo or ran
+! false && echo not ran
+~ hello h?llo && echo pattern ?
+~ b [abc] && echo pattern class
+~ x y z || echo no match status $status
+false
+echo status after false: $status

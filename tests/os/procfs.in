@@ -1,0 +1,4 @@
+ls /proc/self
+/test/procfstest
+ps
+shutdown 0

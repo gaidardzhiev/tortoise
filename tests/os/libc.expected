@@ -1,0 +1,58 @@
+TORTOISE ROM
+TORTOISE OS booting, 32768 KB RAM
+$ /test/libtest
+ok   ftell after writing
+ok   rewind and getline
+ok   fscanf
+ok   fseek SEEK_SET
+ok   fseek SEEK_CUR
+ok   fseek SEEK_END
+ok   getline at end of file
+ok   fileno
+ok   fdopen
+ok   fclose of fdopen closes the descriptor
+ok   setvbuf unbuffered writes at once
+ok   setvbuf fully buffered holds output
+ok   setbuf NULL flushes and unbuffers
+ok   freopen stdout
+ok   freopen kept descriptor 1
+ok   tmpfile
+ok   tmpfile reads back
+ok   mkstemp
+ok   mkstemp mode 0600
+ok   mkstemp names differ
+ok   mkstemp needs XXXXXX
+ok   system
+from system
+ok   system runs a command
+ok   opendir and readdir
+ok   rewinddir
+ok   closedir
+ok   opendir of a file fails
+ok   glob sorts and skips dot files
+ok   glob with ? and []
+ok   glob without a match
+ok   glob GLOB_NOCHECK
+ok   getcwd
+ok   execl
+ok   execlp searches PATH
+ok   execle passes the environment
+ok   abort raises SIGABRT
+ok   getpwnam
+ok   getpwuid
+ok   getpwnam of a missing user
+ok   getgrnam
+ok   getgrgid
+ok   crypt_t
+ok   time and gettimeofday agree
+ok   localtime is UTC
+ok   sleep in seconds
+ok   usleep 50 ms is 5 ticks
+ok   isatty
+ok   ttyname
+ok   brk grows
+ok   brk shrinks
+ok   malloc after brk
+ok   perror
+libtest: all ok
+$ shutdown 0
