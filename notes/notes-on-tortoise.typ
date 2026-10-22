@@ -28,7 +28,7 @@
 #align(center)[#text(weight: "bold", size: 10pt)[ABSTRACT]]
 #pad(x: 2.2em)[
   #text(size: 9.8pt)[
-  TORTOISE is a complete computer implemented in software. It defines a 32-bit processor, instruction set, virtual memory, interrupts, memory-mapped devices, boot ROM, assembler, linker, C compiler, and Unix-like operating system. The processor preserves its original 16-bit-oriented instruction set while extended operation adds paging, privilege separation, and 32-bit instructions. The toolchain produces relocatable TOF objects and TEX1 executables. The operating system implements processes, copy-on-write fork, demand paging, signals, pipes, a virtual file system, and a command shell. The compiler builds itself, the assembler, and the linker for execution inside the emulated system; its in-system assembly output is byte-identical to output generated on the host. These notes describe the machine architecture, instruction execution, toolchain, kernel, storage, runtime, and self-hosting tests.
+  TORTOISE is a 32-bit computer implemented in software, with its own processor, memory system, devices, boot ROM, assembler, linker, C compiler, and operating system. Its original 16-bit-oriented instruction set remains executable, while extended operation supplies 32-bit instructions, paging, interrupts, and privilege separation. The guest kernel implements processes, copy-on-write memory, signals, files, permissions, terminals, and per-process namespaces. A network controller joins multiple emulated machines; the guest implements Ethernet, ARP, IPv4, ICMP, UDP, TCP, Unix sockets, and Plan 9-style network files. Its VFS binds local devices and 9P file servers into the same namespace. The operating system runs its own tools and rebuilds the library, compiler, assembler, linker, kernel, boot sector, and user programs from source, producing the same binaries as the host build. These notes describe the architecture, operating system, network, toolchain, and reproducible bootstrap.
   ]
 ]
 
@@ -42,15 +42,17 @@ The processor has eight general-purpose 32-bit registers, a program counter, a s
 
 TORTOISE includes an assembler named `as`, a linker named `tlink`, and a C compiler named `tcc0`. C source is preprocessed, parsed into typed expressions and statements, written as TORTOISE assembly, assembled into a relocatable TOF object, and linked into a TEX1 executable. A small C library supplies startup code, memory allocation, formatted I/O, and operating-system calls. A separate bare-machine version of the library uses the machine devices directly.
 
-The operating system boots from the emulated disk through the ROM and a 512-byte boot sector. Its kernel establishes paging, handles faults and interrupts, schedules processes, accesses disk files through a virtual file system, and starts `/bin/init` and a shell. It compiles and runs C source from within the guest. The assembler, linker, and compiler are themselves C programs compiled by `tcc0`, which closes the toolchain bootstrap inside TORTOISE.
+The operating system boots from the emulated disk through the ROM and a 512-byte boot sector. Its kernel establishes paging, handles faults and interrupts, schedules processes, and starts `/bin/init`. The system runs login sessions and two shells, maintains user identities and permissions, and presents local files, devices, process state, network connections, and remote file servers through file names. Its C compiler, assembler, and linker are ordinary guest programs.
+
+The network controller can be looped back or connected to other TORTOISE instances through a small host-side Ethernet switch. Each guest runs its own IPv4 stack and can communicate through sockets or through the file interface under `/net`. The system can serve files over 9P, mount remote directories, and run an HTTP server and text browser. A source disk contains the tools, library, boot code, kernel, and applications. Booted from that disk, TORTOISE rebuilds the entire system with its own compiler and tools, and the build results compare byte for byte with the corresponding host build.
 
 = Structure
 
-The host emulator is divided among `src/cpu.c`, `src/dev.c`, `src/dis.c`, `src/emu.c`, `src/opts.c`, `src/dbg.c`, `src/gdb.c`, and the corresponding headers in `include`. CPU execution and address translation belong to `cpu.c`. Device registers, UART streams, disk transfers, timers, and the interrupt controller belong to `dev.c`. The emulator driver handles loading and run options; the disassembler, interactive debugger, and GDB remote stub inspect the same CPU state.
+The host emulator is divided among `src/cpu.c`, `src/dev.c`, `src/net.c`, `src/dis.c`, `src/emu.c`, `src/opts.c`, `src/dbg.c`, `src/gdb.c`, and the corresponding headers in `include`. CPU execution and address translation belong to `cpu.c`. Device registers, UART streams, disk transfers, timers, and the interrupt controller belong to `dev.c`. `net.c` implements the emulated Ethernet controller and its host-facing transport. The emulator driver handles loading and run options; the disassembler, interactive debugger, and GDB remote stub inspect the same CPU state.
 
 `assembler/assembler.c` reads TORTOISE assembly and produces flat binaries or TOF objects. `tools/tlink.c` resolves symbols and relocations to produce a TEX1 executable or a flat image. The compiler is divided into `cc/pp.c`, `cc/parse.c`, `cc/gen.c`, and `cc/main.c`: preprocessing, parsing and types, assembly generation, and the driver. `lib/` contains the runtime sources, headers, and startup assembly. The ROM is written in `rom/rom.asm`.
 
-The guest system is under `os/`. `os/boot` contains the disk boot sector, `os/kernel` contains the kernel, and `os/bin` contains its user programs. The system file creator is `tools/tdisk.c`. The top-level `Makefile` connects these components: it builds the tools on the host, uses the TORTOISE compiler for the kernel and its user programs, constructs a disk image, and runs that image through the emulator.
+The guest system is under `os/`. `os/boot` contains the disk boot sector, `os/kernel` contains the kernel, and `os/bin` contains the user programs. The kernel has separate implementations for namespaces, 9P mounts, network files, sockets, IPv4, TCP, credentials, notes, pseudo terminals, and filesystem devices. The system file creator is `tools/tdisk.c`; `tools/tswitch.c` connects Ethernet frames between emulator instances. `os/build.sh` is the in-system source rebuild script. The top-level `Makefile` builds the tools on the host, uses the TORTOISE compiler for the kernel and user programs, constructs several kinds of disk image, and runs the image through the emulator.
 
 ```sh
 make
@@ -58,6 +60,10 @@ make os
 make run_os
 make selfhost.img
 make run_selfhost_test
+make run_net2_test
+make srcimg
+make run_rebuild_test
+make run_rebuild_ns_test
 ```
 
 Each command uses the tools built by the same project. The first produces the emulator and toolchain. The operating-system targets add the ROM, kernel, disk, and programs. The self-hosting target places the compiler, assembler, linker, headers, and libraries on a guest disk so that the system can rebuild software from inside its own shell.
@@ -68,7 +74,7 @@ Each command uses the tools built by the same project. The first produces the em
 
 The assembler keeps dynamically grown arrays of symbols, lines, macros, relocations, and section bytes. The linker keeps object records, a hash table of global symbols, and the layout of text, data, and BSS. The compiler allocates tokens, types, symbols, expression trees, functions, initializers, and string literals. These representations are intentionally separate: CPU state describes a running machine; a TOF record describes machine code before final addresses have been assigned.
 
-Device state includes interrupt pending and mask bits, timer counters, UART buffers, disk commands, and optional SDL input and framebuffer state. Saving the emulator records the registers, control state, RAM, device registers, and executed instruction count. Loading such a state restores execution at that machine point. The backing disk remains a separate persistent image.
+Device state includes interrupt pending and mask bits, timer counters, UART buffers, disk commands, Ethernet transmit and receive registers, and optional SDL input and framebuffer state. Saving the emulator records the registers, control state, RAM, device registers, and executed instruction count. Loading such a state restores execution at that machine point. Backing disks and the live network transport remain separate from the saved memory image.
 
 = The processor
 
@@ -244,13 +250,39 @@ A kernel installs valid vector addresses before enabling interrupts. A page faul
 
 = Devices and memory-mapped I/O
 
-`src/dev.c` defines the physical device bus. Each controller has a base address and a read/write callback. A 32-bit load or store to a device register invokes the corresponding callback rather than accessing RAM. The controllers are laid out at 4 KB intervals: interrupt controller `0xF0000000`, timer `0xF0001000`, UART `0xF0002000`, disk `0xF0003000`, keyboard `0xF0004000`, real-time clock `0xF0005000`, framebuffer `0xF0006000`, system control `0xF0007000`, and a second disk at `0xF0009000`.
+`src/dev.c` defines the physical device bus. Each controller has a base address and a read/write callback. A 32-bit load or store to a device register invokes the corresponding callback rather than accessing RAM. The controllers are laid out at 4 KB intervals: interrupt controller `0xF0000000`, timer `0xF0001000`, UART `0xF0002000`, disk `0xF0003000`, keyboard `0xF0004000`, real-time clock `0xF0005000`, framebuffer `0xF0006000`, system control `0xF0007000`, a network controller at `0xF0008000`, and a second disk at `0xF0009000`.
 
-The interrupt controller collects device lines in `PENDING`. `MASK` enables individual lines, `ACK` clears them, and `CLAIM` reports the lowest enabled pending line. The timer raises line 0, UART receive and transmit use lines 1 and 2, the primary disk uses line 3, the keyboard uses line 4, and the second disk uses line 6. The CPU converts an active line `n` into exception vector `32 + n`.
+The interrupt controller collects device lines in `PENDING`. `MASK` enables individual lines, `ACK` clears them, and `CLAIM` reports the lowest enabled pending line. The timer raises line 0, UART receive and transmit use lines 1 and 2, the primary disk uses line 3, the keyboard uses line 4, Ethernet uses line 5, and the second disk uses line 6. The CPU converts an active line `n` into exception vector `32 + n`.
 
 The UART writes transmitted bytes to the host's standard output. Input comes either from standard input or from the file selected by `-i`. The disk controller transfers blocks of 512 bytes between physical RAM and a disk image; `-D` selects a host file and `-E` supplies the second disk. `SECTOR`, `COUNT`, `ADDR`, `CMD`, `STATUS`, and `SIZE` make up the disk's register interface. The system-control device reports RAM size and machine version and exits with the value written to its power-off register.
 
 Legacy port devices remain accessible through `IN` and `OUT`. Ports `0xFF00` through `0xFF04` supply console, timer, random-number, and halt functions; `0xFF10` through `0xFF13` expose a synchronous disk interface. The SDL build adds a 640-by-480, 32-bit framebuffer and host keyboard integration. In the normal terminal build, the UART and emulated disks supply the operating system's primary interaction path.
+
+= Ethernet device and host transport
+
+The network adapter belongs to the emulated machine. Its registers are mapped at `0xF0008000` and its interrupt is line 5 of the interrupt controller. The guest driver supplies physical addresses of transmit and receive buffers in RAM. The adapter reads transmitted frames from those buffers, writes received frames back to RAM, reports status and counters, and interrupts the CPU on completed operations. The network code therefore uses the same DMA, interrupt, and physical-memory conventions as the disk controller.
+
+== Controller registers
+
+`src/net.c` implements the device. The first two registers hold the six-byte Ethernet address. `CTRL` is at offset `0x08`, `STATUS` at `0x0C`, `TX_ADDR` and `TX_LEN` at `0x10` and `0x14`, and `RX_ADDR` and `RX_LEN` at `0x18` and `0x1C`. The final three registers count transmitted, received, and dropped frames. Enabling reception and supplying an RX buffer allows the device to copy the next queued frame into guest RAM. A write acknowledging received status releases the buffer for the next frame.
+
+A transmit begins when the guest writes a valid frame length. The device copies the frame from RAM immediately and schedules its completion at `cpu.icount + (length + 15) / 16`. Completed transmissions increment the counter and raise the configured interrupt. Received frames arrive in a 64-entry host-side queue, from which the adapter copies one frame at a time into a guest buffer. Frames have ordinary Ethernet headers; the device accepts frames addressed to its MAC and broadcasts, or all frames when promiscuous mode is enabled.
+
+This is the division between the adapter and the operating system: the adapter moves complete frames, while the guest interprets their Ethernet types and implements ARP and the Internet protocols. The kernel's `eth_intr` acknowledges the adapter, processes received data, and advances queued transmissions. Network traffic passes through physical RAM buffers visible to ordinary TORTOISE load and store instructions.
+
+== Connecting emulator instances
+
+There are three host transports. Without `-N`, transmitted frames have no receiver. `-N loop` returns each transmitted frame to the same adapter. With `-N udp:LPORT:HOST:RPORT`, the emulator sends every Ethernet frame as the data of a host UDP datagram and receives other frames on its own UDP port. `-M` sets the guest MAC address and `-W` records traffic in a PCAP capture. The host transport does not run the guest TCP/IP stack; all IP processing remains in the emulated kernel.
+
+`tswitch` is a separate process that receives those datagrams. It learns a source MAC address from each incoming frame and associates it with the originating UDP endpoint. Frames for known destinations go to the learned endpoint; broadcasts and unknown destinations are forwarded to the other attached endpoints. A switch can consequently join several TORTOISE machines without giving any of them direct access to another machine's RAM or system calls.
+
+```sh
+./tswitch 9000 &
+./tortoise -m 32 -N udp:9001:127.0.0.1:9000 -M 02:00:00:00:00:0a -r rom/rom.bin -D a.img
+./tortoise -m 32 -N udp:9002:127.0.0.1:9000 -M 02:00:00:00:00:0b -r rom/rom.bin -D b.img
+```
+
+Each instance has its own disk image. The packets captured with `-W` are ordinary Ethernet frames and can be examined with network analysis tools. The PCAP timestamp is derived from the simulated instruction count, at one microsecond per instruction. The device scheduler also accounts for pending network transmissions alongside timer and disk events; network progress remains tied to the instruction stream of the machine.
 
 = The TEX1 executable
 
@@ -354,7 +386,7 @@ The timer uses `COUNT`, `PERIOD`, `CTRL`, and `PRESCALE`. The kernel writes a pr
 
 = Kernel facilities
 
-The kernel is a set of C translation units supported by a small amount of assembly. `main.c` starts the system; `mm.c` manages physical and virtual memory; `kmem.c` serves kernel allocations; `proc.c` manages processes; `trap.c` dispatches traps and system calls; `signal.c` delivers signals; `file.c` implements descriptor operations; `vfs.c`, `tfs.c`, `ramfs.c`, `devfs.c`, and `procfs.c` implement file systems. `tty.c` handles the terminal. The kernel exports its definitions through `os/kernel/kernel.h`.
+The kernel is a set of C translation units supported by a small amount of assembly. `main.c` starts the system; `mm.c` manages physical and virtual memory; `kmem.c` serves kernel allocations; `proc.c` manages processes; `trap.c` dispatches traps and system calls; `signal.c` and `note.c` deliver signals and notes; `cred.c` handles identities and permissions; `file.c` implements descriptor operations. `vfs.c`, `tfs.c`, `ramfs.c`, `devfs.c`, `procfs.c`, `ns.c`, `dev9.c`, `mnt.c`, `srv.c`, `env.c`, and `p9.c` implement local storage, process namespaces, mounted 9P trees, and devices exposed as files. `tty.c` and `pty.c` handle terminals, while `sock.c`, `inet.c`, `tcp.c`, and `netfs.c` implement the network interfaces. The kernel exports its definitions through `os/kernel/kernel.h`.
 
 The assembly functions in `entry.s` provide the boundary that C cannot describe directly: startup, trap save and restore, context switching, control-register moves, portless device reads and writes, and the user-mode transition. `memops.s` supplies low-level memory operations. The remaining kernel code uses normal C functions, pointers, structures, arrays, and the calling convention generated by `tcc0`.
 
@@ -373,7 +405,7 @@ The kernel is compiled by TORTOISE's own C compiler. The Makefile invokes `./tcc
 
 The Makefile supplies the complete kernel object set for the real link, including the memory, file-system, signal, process, trap, and device modules. `tdisk` inserts the resulting TEX1 kernel immediately after the boot sector. The same image also contains executable user programs compiled by `tcc0` and the files under `/etc` required by the startup process.
 
-The booted kernel first installs a 64-entry exception table and then initializes its page allocator and virtual mappings. It attaches the initial disk and the root file system, initializes console and process state, programs the timer, enables the interrupt lines, and enters the scheduler. When `/etc/kernel.conf` requests `selftest`, it also runs its kernel-heap test during this initialization sequence.
+The booted kernel first installs a 64-entry exception table and then initializes its page allocator and virtual mappings. It attaches the initial disk and root file system, creates the boot namespace, initializes the console, pseudo terminals, process state, and network interfaces, programs the timer, enables interrupt lines, and enters the scheduler. When `/etc/kernel.conf` requests `selftest`, it also runs its kernel-heap test during this initialization sequence.
 
 = Processes, scheduling, and signals
 
@@ -383,7 +415,7 @@ The runnable queue is selected by the lowest nice value, from -20 to 19. Process
 
 == The first user process
 
-`user_init` constructs process 1 and its initial context. `init_entry` enters `/bin/init`, which processes `/etc/inittab` and starts the shell. The system's normal interactive interface is therefore a user process reading and writing file descriptors, not a loop inside the emulator's host debugger. The shell uses `fork`, `exec`, `wait`, `pipe`, and file-descriptor redirection to run other executables.
+`user_init` constructs process 1 and its initial context. `init_entry` enters `/bin/init`, which processes `/etc/inittab` and starts login sessions. The system's normal interactive interface is therefore a user process reading and writing file descriptors, not a loop inside the emulator's host debugger. The login shell uses `fork`, `exec`, `wait`, `pipe`, and file-descriptor redirection to run other executables. The supplied inittab first runs `/bin/sh /etc/rc` as `sysinit` and then starts a respawning `getty` on the console. `getty` establishes the terminal session and invokes `login`, which reads the account database and starts the user's shell. The supplied image uses `/etc/autologin` to start a root shell without an interactive password prompt.
 
 `execve` replaces the calling process's address space with a linked TEX1 program. Its text and data are mapped at the addresses recorded in the image. The kernel constructs arguments, environment strings, and the initial user stack. On entry, `R1` carries `argc`, `R2` carries `argv`, and `R3` carries the environment pointer. The runtime startup saves `environ`, calls `main`, and passes the return status to `exit`.
 
@@ -405,7 +437,7 @@ The kernel implements one file interface over several backing file systems. Vnod
 
 `vfs.c` defines the shared lookup and mount operations. Filesystem implementations provide methods for lookup, create, read, write, directory enumeration, metadata, links, rename, truncate, I/O control, and polling. `file.c` translates system calls on descriptors into these methods and implements pipes, descriptor duplication, paths, access checks, and seek state. An unlinked open file remains usable until its final descriptor closes.
 
-At boot the root is the disk-backed TFS filesystem. `devfs` is mounted at `/dev`, `procfs` at `/proc`, and an in-memory filesystem at `/tmp`. The mount system also accepts another TFS disk, including the second disk exposed by `-E`. A mount can be removed when its vnodes are no longer in use. These operations give the shell a directory tree independent of the physical type of the data beneath it.
+At boot the root is the disk-backed TFS filesystem. `devfs` is mounted at `/dev`, `procfs` at `/proc`, and an in-memory filesystem at `/tmp`. The boot namespace binds the environment group to `/env`, posted descriptors to `/srv`, and the network device trees to `/net`. The mount system also accepts another TFS disk, including the second disk exposed by `-E`. A mount can be removed when its vnodes are no longer in use. File lookup follows the calling process's namespace, so two processes can reach different files by the same pathname.
 
 == TFS and disk storage
 
@@ -428,7 +460,145 @@ TFS stores data in 512-byte blocks. Block zero contains the `TFS2` superblock an
 
 The TTY layer handles line editing, echo, input and output processing, signal-generating control characters, and foreground process groups. A canonical read collects input until the end of a line, while termios settings permit other character-handling modes. Console descriptors initially belong to init and are inherited by its children. Terminal I/O flows through the UART device, its interrupt line, a TTY queue, file descriptors, and finally the shell.
 
-The command directory contains `init`, `sh`, `echo`, `cat`, `ls`, `mkdir`, `rm`, `wc`, `hello`, `ps`, `kill`, `sleep`, `shutdown`, `crash`, `mount`, `umount`, and `getty`. The tests run these programs against ordinary files, pipes, terminal state, mounted devices, and concurrently executing processes. The system accepts commands through a real user-mode shell whose executables were produced by its own toolchain.
+The command directory contains the initialization and login programs, both shells, process and file utilities, namespace commands, networking tools, 9P file servers, and a text web browser. The tests run these programs against ordinary files, pipes, terminals, local and mounted devices, network connections, and concurrently executing processes. All are user-mode TEX1 programs produced by `tcc0`, `as`, and `tlink`.
+
+= Process identities and permissions
+
+The filesystem records owners, groups, modes, and timestamps in its inodes. A process keeps real, effective, and saved user and group identifiers, up to sixteen supplementary groups, and a file-creation mask. Lookup checks search permission on every directory component; reading, writing, executing, creating, renaming, and removing each use the relevant mode bits and caller identity. The sticky bit restricts removal in shared directories, and a new file inherits the containing directory's group when its set-group-ID bit is set.
+
+`cred.c` implements the identity-changing calls and the checks on their arguments. `setuid`, `setgid`, their real/effective-ID variants, and supplementary group changes update the current process. `execve` applies the owner and group of an executable carrying the set-user-ID or set-group-ID bit. The permission checks for signals and kernel controls use the same process credentials. Accounts and groups are kept in `/etc/passwd` and `/etc/group`; `getty`, `login`, `su`, and `passwd` read these files through the guest C library.
+
+The image contains root, an ordinary user account, and the unprivileged identity `none`. `getty` creates a session and controlling terminal, then runs `login`; the login program selects the initial user and group identifiers, supplementary groups, home directory, and shell. The permission model is exercised by the separate login and permissions tests as well as by ordinary file operations. The system also maintains per-process creation masks and the usual ownership fields returned by `stat`.
+
+= Process namespaces
+
+A namespace is the mapping through which one process resolves its pathnames. `os/kernel/ns.c` stores entries keyed by a directory or file and associates each entry with an ordered list of mounted or bound members. A namespace can be shared, copied, or built empty. The original directory tree remains on the filesystem; the namespace determines which parts of that tree a particular process sees at any pathname.
+
+== The rfork operation
+
+`rfork` combines process creation with control over groups of resources. With `RFPROC` it creates a process; without that bit it changes the caller's resource groups. `RFNAMEG` copies the namespace and `RFCNAMEG` starts a clean one. `RFFDG` copies file descriptors and `RFCFDG` starts without descriptors. `RFENVG` copies the environment group and `RFCENVG` creates a new empty one. `RFNOWAIT` gives the child to init, while the note-group flag supplies group notification. The ordinary `fork` operation is implemented through this same interface.
+
+A plain fork shares the parent's namespace; a later bind made by either process is visible to the other. A namespace copy gives the new process a private list of mount and bind operations. The C library exposes the calls through `<plan9.h>`, and `rfork` in the shells selects them with flags such as `n`, `N`, `e`, and `E`.
+
+== Bind, union, and mounted directories
+
+`bind9(new, old, flags)` makes an existing file or directory available under another name. `MREPLACE` replaces the current view, `MBEFORE` inserts a member ahead of the existing directory, and `MAFTER` appends one after it. `MCREATE` selects a member in which newly created names may be placed. A lookup in a union directory searches members in order; directory enumeration presents each name once, taking the first occurrence. `..` follows the path by which a directory was reached, not necessarily the location of its underlying inode.
+
+```sh
+rfork n
+bind -bc /nsw /nsu
+bind -a /nsv /nsu
+ns
+```
+
+`ns` prints the caller's namespace from `/proc/N/ns` as commands that can reconstruct it. `newns` creates a private namespace from a namespace file, normally `/lib/namespace`. The `bind`, `mount`, and `unmount` programs change the current namespace, while ordinary filesystem operations still go through the same `open`, `read`, `write`, and `stat` system calls. Mounts of the root, device filesystem, process filesystem, and memory filesystem use the same path machinery as bind operations.
+
+At boot the namespace binds the kernel device trees for environment variables, posted descriptors, and networking onto `/env`, `/srv`, and `/net`. A pathname beginning with `#` names a device tree directly, independently of the current bindings. The device names include `#c` for ordinary devices, `#p` for processes, `#D` for disks, `#e` for the environment group, `#s` for posted descriptors, `#I` and `#l` for network services, and `#|` for a bidirectional pipe. These names are ordinary operands of bind and mount, and the shell quotes the `#` where necessary.
+
+The boot namespace is changed by the superuser. Set-user-ID and set-group-ID execution selects the boot namespace, so a private binding of a file such as `/etc/passwd` does not change the file a privileged login utility uses. This rule keeps the process identity mechanism separate from an unprivileged process's chosen view of the filesystem.
+
+== Environment groups and process controls
+
+Every process also belongs to an environment group served by `#e`, normally visible at `/env`. Each variable is a file whose contents may be arbitrary bytes. `rc` stores its lists as zero-separated words; `rfork e` makes a private copy, and `rfork E` starts a fresh group. POSIX `environ` and the ordinary environment strings passed by `execve` remain a separate interface.
+
+Other kernel state is available through control and status files. `/proc/N/status` reports identifiers, memory size, scheduling and signal state; `/proc/N/fd`, `/proc/N/maps`, and `/proc/N/ns` show descriptors, virtual memory, and namespace entries. Writing commands to `/proc/N/ctl` stops, starts, changes priority, or terminates a process. `/dev/consctl` and `/dev/pts/Nctl` change terminal modes. An invalid control command sets the caller's error string, which `errstr` exchanges through system call 105. These controls coexist with the usual `ioctl`, `kill`, and terminal library calls.
+
+= Notes and terminals
+
+`note.c` implements a second process-notification interface alongside POSIX signals. Writing a message to `/proc/N/note` sends it to one process; `/proc/N/notepg` addresses the process group. A process installs a handler with `notify`. The handler receives a saved register frame and message, and calls `noted` to resume or take the default action. When no note handler exists, standard note names map to the corresponding signals. Signals with installed signal actions continue through the signal mechanism.
+
+The terminal subsystem in `tty.c` now serves both the console and pseudo terminals. Opening `/dev/ptmx` creates a master and slave pair, with the slave exposed at `/dev/pts/N`. The slave uses the same canonical and noncanonical input processing, echo, control characters, job-control signals, and foreground process-group rules as the console. A terminal session created by `getty` and `login` therefore has the same process-group interface as a session attached to a pseudo terminal.
+
+A master receives output from the slave and supplies input to it. Closing the master hangs up the slave's foreground process group; reads and writes then follow the corresponding EOF and I/O-error paths. The `/dev/pts/Nctl` control file changes line settings through text commands. Eight pairs are supported. The terminal and job-control suites test signal-generating control characters, suspended and resumed groups, and terminal ownership.
+
+= 9P file systems
+
+The kernel's mount driver implements 9P2000 over a bidirectional byte stream. A connection can be a socket pair, a Unix socket, a TCP connection, or the `#|` pipe device. The client negotiates the message size, attaches to a remote tree, and walks it through fids. Each ordinary VFS request becomes a protocol message, so a file served by another process is read through the same interface as a local TFS or ramfs file.
+
+== From VFS operations to protocol messages
+
+A pathname lookup becomes `Twalk`; opening a file uses a cloned fid and `Topen`; reads and writes use `Tread` and `Twrite`; removal uses `Tremove`; metadata operations use `Tstat` and `Twstat`. Replies carry the returned bytes or metadata. The mount implementation keeps fids and request tags, translates protocol errors to `errno` and the process error string, and sends `Tflush` when a waiting process is interrupted. Messages are little-endian and the negotiated size is at most 8192 bytes.
+
+`mount9(fd, afd, old, flags, aname)` attaches the remote tree selected by `aname` and binds its root at `old` in the calling process's namespace. A remote mount participates in unions and private namespaces. The VFS consequently has one lookup path across local filesystem nodes, device nodes, and remote 9P nodes. The identities supplied to an attach are carried in the connection rather than inferred from the emulator's host user.
+
+== Posted services and file servers
+
+The `#s` device, normally bound on `/srv`, holds named open descriptors. Creating `/srv/name` and writing a descriptor number posts a connection. Another process opens that name to obtain the posted descriptor and mount the server. A posted connection remains available after the posting process exits; it is removed when its `/srv` entry is deleted. The namespace can therefore identify a file service without embedding the original socket number in a mount command.
+
+The library under `lib/9pconv.c` and `lib/9p.c` encodes and decodes 9P messages and provides `serve9`, the dispatcher for a user-space server. Handlers implement attach, walk, open, create, read, write, remove, stat, and other operations. `ramfs9` serves a memory-resident filesystem, `exportfs` exports a subtree of its caller's namespace, and `import` connects to another machine's export service over TCP. The file service is a normal user process using sockets, descriptors, and the guest runtime.
+
+```sh
+rfork n
+ramfs9 -s scratch
+mount -c /srv/scratch /n/scratch
+exportfs -l &
+import beta /var/www /n/beta
+```
+
+This example creates a private namespace, starts a local server, mounts its tree, serves a directory over the network, and imports another machine's directory. The local `mount` and remote `import` change only the current process's view when its namespace has been copied. `lib/addns.c` reads a namespace file and applies its commands at login or when starting a new namespace with `newns`.
+
+= Networking in the guest kernel
+
+`inet.c`, `tcp.c`, and `sock.c` contain the guest protocol stack and socket layer. Ethernet frames arrive from the virtual controller and enter the IPv4 path after the Ethernet type and destination address have been checked. The stack keeps two interfaces, loopback `lo` at `127.0.0.1/8` and `eth0` on the virtual adapter. Interface configuration, routes, and neighbor entries belong to the guest operating system, not to the host UDP transport used between emulators.
+
+== IPv4, ARP, ICMP, and UDP
+
+An outgoing packet is assigned a source address and route. The routing table keeps up to eight entries and selects the longest matching network prefix. An Ethernet destination is resolved through the ARP cache; a pending resolution sends requests and holds packets for later transmission. Incoming ARP replies update the cache and release queued packets. The interface also sends a gratuitous ARP request when brought up with an address.
+
+The IPv4 path builds and checks the normal version-4 header, length, checksum, protocol, and destination address. ICMP handles echo requests and replies and reports unreachable UDP destinations. UDP keeps packet boundaries and sender addresses and uses the IPv4 pseudo-header checksum. The `ping`, `nc`, `tget`, and other network programs exercise these paths through socket descriptors.
+
+== TCP connections
+
+TCP is implemented in `tcp.c` as connection-control blocks with sequence and acknowledgment numbers, send and receive windows, retransmission timers, and the RFC 793 connection states. A listening socket accepts children after the handshake. Stream reads consume queued bytes, writes advance the send buffer, and closing a socket takes the connection through its closing states and `TIME_WAIT`. A retransmission timer uses the emulated tick count, doubling the interval on successive retries. Send and receive buffers are 8 KB each; the maximum segment size is negotiated during the handshake.
+
+The TCP state machine and the kernel's wait queues meet at the descriptor interface. A blocked `connect`, `accept`, `read`, or `write` sleeps until a packet, buffer change, closure, signal, or timeout makes progress possible. Polling uses the same socket state. Network connections are scheduled by guest timers and guest interrupts, and are thus integrated into the operating system's normal execution model.
+
+== Sockets and Unix-domain communication
+
+The socket layer supports Internet stream and datagram sockets, raw ICMP sockets, Unix-domain stream and datagram sockets, and connected Unix socket pairs. Open sockets are file descriptors; `read`, `write`, `poll`, `dup`, `fcntl`, and `close` operate on them as on other files. The socket calls supply `bind`, `listen`, `accept`, `connect`, `sendto`, `recvfrom`, `shutdown`, option setting, and local and peer address queries. Nonblocking mode and receive timeouts are handled through descriptor state and the scheduler.
+
+An AF_UNIX socket is bound to a pathname and participates in filesystem lookup. `socketpair` creates an immediately connected pair for local interprocess communication. The C library defines the socket and network interfaces in `<sys/socket.h>`, `<netinet/in.h>`, `<arpa/inet.h>`, `<sys/un.h>`, `<netdb.h>`, and the interface and routing headers. Hostname lookup reads `/etc/hosts`, while service names come from `/etc/services`.
+
+== Networking as files
+
+`netfs.c` exposes the protocol stack under `#I`, normally bound into `/net`, using a Plan 9-style interface. `/net/tcp/clone`, `/net/udp/clone`, and `/net/icmp/clone` allocate connections. Reading the resulting control file gives the connection number, and a directory named by that number contains `ctl`, `data`, `listen`, `local`, `remote`, `status`, and `err`. Writing `connect`, `announce`, `bind`, or `hangup` to `ctl` changes the connection. Reading and writing `data` transfers stream bytes or datagrams.
+
+The network tree and BSD sockets refer to the same underlying connections. A socket opened and connected through the socket API appears in `/net/tcp/N`; a connection opened through `clone` is visible to `netstat`. `/net/cs` translates names such as `tcp!host!service` to a clone file and numerical address. `/net/ipifc/N/ctl`, `/net/iproute`, and `/net/ether0/ctl` control interfaces and routes. `/proc/net` exposes connection, routing, ARP, and device statistics as read-only text.
+
+```sh
+ifconfig eth0 10.0.0.1 netmask 255.255.255.0 up
+ping -c 2 10.0.0.2
+netstat -n
+```
+
+With two connected emulator instances the commands run over the virtual Ethernet network. The library in `lib/net9.c` also supplies `dial`, `announce`, `listen9`, and `accept9` for programs that use the `/net` file convention. This gives the guest two interfaces to one IP stack: conventional socket system calls and named protocol connections. `make run_net2_test` starts two separately configured machines through the virtual switch and checks their communication against the recorded test transcripts.
+
+= Programs, shells, and the web
+
+The command environment now includes file-management programs, process and permission utilities, `ifconfig`, `route`, `arp`, `netstat`, `ping`, `nc`, `telnet`, `telnetd`, `httpd`, `tget`, `listen1`, and the 9P service programs. `ps`, `top`, `lsof`, and `dmesg` obtain process, descriptor, and kernel state through the filesystem interfaces. `init` reads `/etc/inittab`; `/etc/rc` applies the network configuration; `getty` and `login` establish the interactive session. These programs run as compiled TEX1 executables.
+
+== The rc shell
+
+`/bin/rc` supplies a second shell alongside `/bin/sh`. Its variables are lists of words, set with forms such as `x=(a b c)`. `$x` expands the list, `$#x` reports its length, and `^` concatenates words. It implements functions, `if` and `if not`, `for`, `while`, `switch`, pattern matching, command substitution, pipelines, redirections, and background execution. It stores variables through `/env` as zero-separated word lists. The `rfork`, `bind`, and `mount` programs let a shell process change its namespace and resource groups before executing other commands.
+
+```sh
+rc -c 'x=(one two three); echo $#x; echo $x'
+newns -n /lib/namespace rc
+```
+
+The original `/bin/sh` remains the shell used by login and the default scripts. It supplies pipelines, parameter expansion, redirection, built-ins, command control, and terminal job control. The two shells use the same process creation, file descriptors, and kernel signals, but expose different ways of describing their command environment.
+
+== HTTP and browsing
+
+`httpd` is a user-space HTTP server running over the guest TCP stack. `browse` is a text browser that reads HTML or plain text from HTTP URLs and local `file:` paths. It can follow links, search text, page through the rendered document, and show a numbered list of links; `-dump` writes a plain text rendering for scripts and tests. The browser handles headings, lists, tables, links, preformatted text, and character entities. Its rendering is terminal output from a normal guest program.
+
+```sh
+httpd -p 80 /var/www &
+browse http://localhost/
+browse -dump -width 72 http://localhost/
+```
+
+These two programs exercise the network connection lifecycle, socket reads and writes, file access, formatted output, terminal control, and memory allocation within the same guest. The browser sends HTTP/1.0 requests and renders text directly; the kernel's network stack carries the bytes through TCP and the guest's file and process layers.
 
 = Multiple source files
 
@@ -679,6 +849,56 @@ Each user process has a page directory. Supervisor-only low-memory mappings and 
 
 The address translation and fault mechanism make these operations visible to software as ordinary memory. A C process can call `malloc`, touch a newly extended heap page, fork a child, or write to a private mapping without receiving a host allocation object. Its instructions read and write guest virtual addresses, and the kernel chooses the physical memory backing those addresses.
 
+= Rebuilding the system inside TORTOISE
+
+The guest toolchain is used to rebuild more than an example or the compiler itself. `make srcimg` creates a source disk containing the assembler, linker, compiler, their headers and libraries, the boot sector, kernel, the user programs, and the sources from which they were built. This image has a 128 MB TFS filesystem and mounts the source tree under `/usr/src`. The build procedure is stored in `/usr/src/build.sh`, so the work can be done by processes running on the emulated CPU.
+
+== Build order and bootstrap
+
+The rebuild begins with the library, producing bare-machine and hosted objects. It then compiles `as` and `tlink` with the installed guest compiler. It builds `tcc0` from the four source modules using the installed compiler, then compiles the same sources with that newly built compiler. The resulting compiler is used to produce the kernel objects and all user programs. The assembler builds the kernel entry and memory routines and the disk boot sector. The linker produces the kernel TEX1 file at `0x00020000`.
+
+```sh
+make srcimg
+./tortoise -m 64 -r rom/rom.bin -D src.img
+# In the TORTOISE shell:
+cd /usr/src
+sh build.sh
+```
+
+The build output is placed under `/usr/obj`, with separate directories for library objects, tools, the two compiler stages, kernel objects, boot code, and executable programs. `os/kernel/build.date` is part of the source image and supplies the kernel's build-date string. The date does not change between the host compilation and the in-system rebuild. The generated tools and binaries compare byte for byte with the corresponding host products.
+
+`kinstall` takes the rebuilt kernel TEX1 image and writes it to sectors 1 through 1023 of the guest's first disk. The disk boot sector subsequently loads that image by reading the TEX1 header. The same guest that compiles the kernel can therefore install it as the next kernel to boot.
+
+```sh
+cd /usr/src
+sh build.sh
+kinstall /usr/obj/kernel/kernel.tex
+```
+
+== Rebuilding through a private namespace
+
+The same build also works when its output directory is a 9P file server rather than a directory on TFS. A process copies its namespace, starts `ramfs9` mounted at `/usr/obj`, and runs the build into that mount. It can then bind the generated tools, programs, and library ahead of their installed versions in `/bin` and `/lib`. After unmounting `/usr/obj`, those bindings retain the generated files and a second build uses the newly compiled toolchain and library.
+
+```sh
+cd /usr/src
+rfork n
+ramfs9 -m /usr/obj
+sh build.sh
+bind -b /usr/obj/tools /bin
+bind -b /usr/obj/bin /bin
+bind -b /usr/obj/lib /lib
+unmount /usr/obj
+sh build.sh
+```
+
+This sequence exercises private namespaces, union binds, 9P file operations, the guest shell, and two successive generations of tools. The second output is checked against the normal host build. It demonstrates that the source and build procedure do not depend on the original mounted binary directory once the replacement tools have been made available.
+
+== Rebuild tests
+
+`run_rebuild_test` boots the source image, runs its build script, extracts results, and compares them with the host-produced kernel, runtime, tools, and applications. `run_rebuild_ns_test` performs the build through a 9P-backed directory and a private namespace, then repeats it with the newly built binaries. Both are included in `make check`. The standalone `run_selfcompile_test` separately builds second- and third-generation guest C compilers and compares them byte for byte.
+
+The tests cover three different properties: a compiled tool executes correctly on the target CPU, the guest toolchain can reproduce the host build, and a new generation of the compiler can compile itself without changing its output. The rebuilt kernel, boot sector, C library, and user programs complete the chain from assembler and object format to a bootable operating system built on its own machine.
+
 = Self compilation and testing
 
 The project tests the machine, assembler, linker, compiler, C library, ROM, operating system, and complete self-hosting path. The top-level `make check` runs CPU tests, legacy output comparisons, extended assembly tests, device and UART tests, ROM tests, linker tests, C programs and compile-error tests, disk-image tests, operating-system tests, GDB tests, and the self-hosting test. The tests exercise the same executable paths used by the interactive system.
@@ -692,7 +912,7 @@ make run_selfhost_test
 
 The legacy check assembles original programs and compares their binaries and output with frozen baseline files. Extended tests exercise 32-bit operations, branch conditions, flag handling, paging, protection, DMA, interrupt control, and waiting for device events. The unit suites test instruction execution and device behavior directly. The C tests cover arithmetic, pointers, globals, structures, recursion, function pointers, variadic arguments, strings, sorting, allocation, preprocessing, and an interpreter implemented in C.
 
-The operating-system suite boots fresh disk images and compares the console output with expected transcripts. Its cases cover process creation, copy-on-write, exec, signals, lazy allocation, `mmap`, terminal behavior, file operations, larger files, polling, and devices. It also constructs second-disk images for tests that use disk 1. The tests use a deterministic clock, scripted UART input, and an instruction limit. This supplies a reproducible external observation of the whole guest system.
+The operating-system suite boots fresh disk images and compares the console output with expected transcripts. Its cases cover process creation, copy-on-write, exec, signals and notes, lazy allocation, `mmap`, terminal and pseudo-terminal behavior, ownership and permissions, namespaces, 9P mounts, file operations, larger files, polling, sockets, `/net`, networking, and devices. It also constructs second-disk images for tests that use disk 1. The network suite starts two emulators with separate Ethernet addresses and images and connects them through `tswitch`; browser tests supply local HTML and HTTP inputs, including malformed and hostile documents. The tests use a deterministic clock, scripted UART input, and an instruction limit.
 
 The self-hosting image contains the assembler, linker, compiler, runtime libraries, headers, and a C source file at `/src/hello.c`. These tools were compiled for TORTOISE by `tcc0` on the host. Once the image boots, the guest compiler compiles that source, the guest assembler produces its object, the guest linker creates its executable, and the guest runs it. The test extracts `/home/hello.s` from the resulting disk and compares it byte for byte with the assembly produced by the host invocation of `tcc0 -S` on the same source. The comparison succeeds.
 
@@ -705,15 +925,15 @@ tcc0 /src/hello.c -o /home/hello
 
 This check verifies more than the ability to run one generated program. The compiler executing as a TORTOISE user process reproduces the host-built compiler's assembly output. It performs its file I/O through guest system calls, uses the guest library, and writes to a TFS disk through the emulated controller. The system's compiler, assembler, linker, loader, kernel, and CPU agree on one target machine definition.
 
-The `check_nocache` target repeats the program-level tests with the instruction-decoding cache disabled. The ROM monitor and GDB stub have dedicated scripted tests. Snapshot loading, instruction traces, and device-level tests exercise the emulator's observation interfaces separately from the guest-visible behavior.
+The `check_nocache` target repeats the program-level tests with the instruction-decoding cache disabled. The ROM monitor and GDB stub have dedicated scripted tests. Snapshot loading, instruction traces, and device-level tests exercise the emulator's observation interfaces separately from the guest-visible behavior. `make check` also runs the two whole-system rebuild tests. These extract and compare files from a booted guest image, so a passing comparison covers the compiler, linker, guest filesystem, namespace and 9P operations, kernel, and application build in one run.
 
 = Source size and executable size
 
-The project is organized as source rather than a generated monolithic emulator. In the accompanying tree, the nine `src/*.c` files contain 3239 lines, and the four compiler files in `cc/` contain 3865 lines. The assembler is 1438 lines of C, and `tools/tlink.c` together with `tools/tdisk.c` contain 930 lines. The fifteen C files in `os/kernel/` contain 5118 lines. These counts describe the source present in the archive; assembly, headers, tests, user programs, and the ROM are additional files.
+The archive contains ten C files under `src/`, totaling 3543 lines. The four compiler modules contain 3877 lines; the assembler is in `assembler/assembler.c`, and the linker, disk image builder, and Ethernet switch are three further C programs under `tools/`. The guest kernel consists of 28 C translation units totaling 11910 lines, with assembly for entry and memory operations. Its 86 user-program sources contain 10581 lines. The library has eighteen C source files, startup and memory-operation assembly, and headers. These figures describe the source in this archive, excluding generated files, tests, and documentation.
 
-The machine and its guest software are distinct executables. The host compiler builds `tortoise` as a native program, but `tcc0`, the assembler, and the linker also have guest-compiled TEX1 forms stored on the self-hosting disk. A kernel TEX1 file begins with its 32-byte header and linked sections, and each guest user program is another TEX1 file. The file sizes depend on the exact source selection and the target compiler's emitted instructions.
+The increase in kernel source follows distinct interfaces: network devices and protocols, VFS mounts and 9P, namespace and environment groups, authentication and permissions, process notes, terminals, and socket APIs. The command tree likewise includes both shells, network clients and servers, 9P utilities, system administration programs, and the browser. Each is separately compiled into a TEX1 executable. The host emulator, kernel, and user processes remain different programs executing at different levels of the same defined machine.
 
-The system's test code is substantial. Eight host-side `tests/test_*.c` programs supply 2695 lines of direct unit and processor tests, while the assembly suite, C tests, operating-system programs, expected transcripts, ROM tests, and self-hosting scripts provide end-to-end coverage. The code volume is distributed across actual components of a complete computer: interpreter, devices, toolchain, kernel, file systems, library, and application environment.
+The complete test corpus includes processor and device unit tests, assembly programs, C language tests, user-mode kernel tests, OS transcript tests, networking across two instances, GDB tests, compiler self-compilation, and two in-system rebuilds. The rebuilt files are compared with host-built outputs rather than checked only for successful execution.
 
 = Implementation notes
 
@@ -721,19 +941,19 @@ The emulator maintains a precise separation between instruction decoding, archit
 
 The assembler is the canonical encoder for the instruction set. It writes bytes either to a flat output image or to TOF sections with relocations. The compiler targets that assembler: its generator emits readable TORTOISE assembly and relies on assembler and linker passes for symbol references and final section placement. This allows assembly in a C runtime, kernel entry, or disk boot sector to use exactly the same instruction definitions as compiler-generated code.
 
-The boot system follows a series of executable boundaries. The ROM is assembled at `0xFFFF0000`; it loads sector zero; that sector reads a TEX1 kernel from subsequent disk sectors; the kernel entry establishes a C stack and calls `kmain`; and the kernel creates a first user process from a TEX1 executable stored in TFS. No step depends on x86 boot firmware or an external operating-system kernel inside the guest. The entire sequence executes as TORTOISE machine instructions.
+The boot system follows a series of executable boundaries. The ROM is assembled at `0xFFFF0000`; it loads sector zero; that sector reads a TEX1 kernel from subsequent disk sectors; the kernel entry establishes a C stack and calls `kmain`; and the kernel creates a first user process from a TEX1 executable stored in TFS. The kernel then constructs a namespace, mounts its filesystems, starts networking and login services, and runs the user environment. The entire sequence executes as TORTOISE machine instructions.
 
 The memory system links hardware-level permission checks to operating-system services. Page entries define access rights; CPU faults supply addresses and causes; the kernel maps frames, implements copy-on-write, and returns to the original instruction. Interrupt entry and the common trap frame likewise connect CPU events to the scheduler, syscall interface, and signal machinery. These are concrete interfaces between separately implemented parts, not simulated results returned to an application by the host.
 
-The self-hosting build brings those interfaces together. `tcc0` compiles itself and the assembler and linker into guest executables. Inside the booted OS, these executables use the guest C library and kernel file interface to produce new guest programs. The self-hosting test compares the compiler's generated assembly across the host and in-system executions. It demonstrates that the machine provides the tools and runtime needed to develop software within its own environment.
+The self-hosting build brings those interfaces together. `tcc0` compiles itself and the assembler and linker into guest executables. The source image also rebuilds the C library, disk boot sector, kernel, and user programs. The namespace rebuild runs these tools against files served over 9P, binds the new tools into place, and repeats the compilation. The byte-for-byte comparisons connect the defined instruction set, code generator, assembler, linker, filesystem, and running operating system to one reproducible build.
 
 = Conclusion
 
-TORTOISE is a complete software-defined computer with a 32-bit processor, backward-compatible legacy instructions, paging and privilege, interrupt and exception delivery, deterministic devices, and a boot ROM. Its emulator executes the defined instruction set, translates virtual addresses, models physical memory and controllers, and can be inspected through tracing, an interactive debugger, and a GDB remote stub.
+TORTOISE is a software-defined 32-bit computer with backward-compatible legacy instructions, paged address translation, user and supervisor execution, interrupts, an instruction-driven device clock, boot ROM, disks, UART, display, and Ethernet adapter. Its emulator executes the instruction set, mediates virtual and physical memory, and exposes the machine through instruction tracing, an interactive debugger, and a GDB remote stub.
 
-The toolchain contains an assembler, relocatable TOF object format, symbol-resolving linker, TEX1 executable format, and a C compiler with preprocessing, typed parsing, assembly generation, and a C library. The compiler builds the assembler, linker, and itself for the guest machine. The operating system boots through the guest ROM and disk bootstrap, creates processes, implements copy-on-write and demand paging, handles signals, and serves a filesystem and interactive shell.
+The operating system boots its own kernel and user programs from disk. It manages processes, virtual memory, copy-on-write, signals and notes, sessions, permissions, filesystems, terminals, and per-process namespaces. The network stack implements Ethernet, ARP, IPv4, ICMP, UDP, TCP, and Unix sockets; the same connections appear as files under `/net`. The 9P mount driver and user-space file servers join remote and local directories within the namespace of an ordinary process. The command environment includes two shells, process and filesystem tools, network programs, a web server, and a text browser.
 
-The compiled system runs its tools inside its own operating system. It compiles, assembles, links, and executes a new C program through its own kernel and machine instruction interpreter. The in-system compiler emits assembly identical to the corresponding host invocation. TORTOISE therefore provides a complete path from a defined processor and binary format to a self-hosting programming environment.
+The compiler, assembler, linker, runtime library, kernel, boot sector, and applications are all source programs targeting the same defined machine. The guest compiler builds itself, and the source image rebuilds the complete guest system using tools executing under its own kernel. The build through 9P and a private namespace produces the same binaries as the host build. TORTOISE thus runs a complete programming environment and reproduces the software that makes that environment run.
 
-#strong[Availability.] The source code of the emulator, assembler, linker, C compiler, libraries, ROM, kernel, user programs, and tests is distributed under the GPL-3.0-only license at:\
+#strong[Availability.] The emulator, processor definition, assembler, linker, C compiler, libraries, ROM, kernel, user programs, tests, and system-building tools are distributed under the GPL-3.0-only license at:\
 `https://github.com/gaidardzhiev/tortoise`
